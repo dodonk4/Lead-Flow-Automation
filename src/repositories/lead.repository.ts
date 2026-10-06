@@ -6,3 +6,9 @@ export const createLead = (data: Prisma.LeadCreateInput) =>
 
 export const findLeadById = (id: string) =>
   prisma.lead.findUnique({ where: { id } });
+
+export const assignLeadToAdvisor = (leadId: string, advisorId: string) =>
+  prisma.lead.update({
+    where: { id: leadId },
+    data: { assignedAdvisorId: advisorId },
+  });
