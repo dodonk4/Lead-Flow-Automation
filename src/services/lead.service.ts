@@ -1,10 +1,23 @@
-import type { Lead, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "../config/database";
+import type { DatabaseClient } from "../config/database";
 import type { CreateLeadInput } from "../schemas/lead.schema";
 import { createLead as persistLead } from "../repositories/lead.repository";
+import { assignLead } from "./assignment.service";
+import type {
+  CreateLeadUseCase,
+  LeadCreationDependencies,
+} from "./lead.service.types";
 
-export type CreateLeadUseCase = (input: CreateLeadInput) => Promise<Lead>;
+const defaultDependencies: LeadCreationDependencies = {
+  transaction: (work) => prisma.$transaction((tx) => work(tx)),
+  persistLead,
+  assignLead,
+};
 
-export const createLead: CreateLeadUseCase = (input) => {
+export const createLeadService = (
+  dependencies: LeadCreationDependencies = defaultDependencies,
+): CreateLeadUseCase => async (input) => {
   const data: Prisma.LeadCreateInput = {
     companyName: input.companyName,
     contactName: input.contactName,
@@ -13,5 +26,12 @@ export const createLead: CreateLeadUseCase = (input) => {
     details: input.details ?? null,
   };
 
-  return persistLead(data);
+  return dependencies.transaction(async (tx) => {
+    const lead = await dependencies.persistLead(data, tx);
+    const assignedLead = await dependencies.assignLead(lead, tx);
+
+    return assignedLead ?? lead;
+  });
 };
+
+export const createLead = createLeadService();

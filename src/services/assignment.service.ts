@@ -1,17 +1,12 @@
-import type { Lead, Prisma } from "@prisma/client";
+import { prisma } from "../config/database";
+import type { DatabaseClient } from "../config/database";
 import { findActiveAssignmentRuleByService } from "../repositories/assignment-rule.repository";
 import { assignLeadToAdvisor } from "../repositories/lead.repository";
-
-type AssignmentRuleWithAdvisor = Prisma.AssignmentRuleGetPayload<{
-  include: { advisor: true };
-}>;
-
-type LeadForAssignment = Pick<Lead, "id" | "serviceRequested">;
-
-type AssignmentDependencies = {
-  findRule: (service: string) => Promise<AssignmentRuleWithAdvisor | null>;
-  assignAdvisor: (leadId: string, advisorId: string) => Promise<Lead>;
-};
+import type {
+  AssignmentDependencies,
+  AssignmentService,
+  LeadForAssignment,
+} from "./assignment.service.types";
 
 const defaultDependencies: AssignmentDependencies = {
   findRule: findActiveAssignmentRuleByService,
@@ -20,15 +15,19 @@ const defaultDependencies: AssignmentDependencies = {
 
 export const createAssignmentService = (
   dependencies: AssignmentDependencies = defaultDependencies,
-) => {
-  return async (lead: LeadForAssignment): Promise<Lead | null> => {
-    const rule = await dependencies.findRule(lead.serviceRequested);
+): AssignmentService => {
+  return async (
+    lead: LeadForAssignment,
+    tx?: DatabaseClient,
+  ) => {
+    const client = tx ?? prisma;
+    const rule = await dependencies.findRule(lead.serviceRequested, client);
 
     if (!rule) {
       return null;
     }
 
-    return dependencies.assignAdvisor(lead.id, rule.advisorId);
+    return dependencies.assignAdvisor(lead.id, rule.advisorId, client);
   };
 };
 
