@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import { createLeadSchema } from "../schemas/lead.schema";
 import { createLead } from "../services/lead.service";
-import type { CreateLeadUseCase } from "../services/lead.service";
+import type { CreateLeadUseCase } from "../services/lead.service.types";
 
 export const createLeadController = (
   createLeadUseCase: CreateLeadUseCase = createLead,

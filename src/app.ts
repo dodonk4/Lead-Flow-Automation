@@ -2,7 +2,7 @@ import express from "express";
 import { healthRouter } from "./routes/health.routes";
 import { createLeadRouter } from "./routes/lead.routes";
 import { createLead } from "./services/lead.service";
-import type { CreateLeadUseCase } from "./services/lead.service";
+import type { CreateLeadUseCase } from "./services/lead.service.types";
 import { errorHandler } from "./middleware/error-handler";
 
 export const createApp = (createLeadUseCase: CreateLeadUseCase = createLead) => {
