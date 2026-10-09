@@ -8,7 +8,9 @@ API Node.js + TypeScript + Express. Instala y ejecuta sus comandos desde esta ca
 Copy-Item .env.example .env
 ```
 
-Configura `DATABASE_URL` para una instancia PostgreSQL accesible. No compartas ni publiques el `.env`.
+Configura `DATABASE_URL` para una instancia PostgreSQL accesible y `FRONTEND_ORIGIN` con el origen exacto desde el que se ejecutará el frontend (por defecto `http://localhost:5173`). No compartas ni publiques el `.env`.
+
+La API de lectura del CRM expone `GET /api/leads` y `GET /api/leads/:id`; el origen de frontend autorizado por CORS se controla mediante `FRONTEND_ORIGIN`.
 
 ## Desarrollo y verificación
 
