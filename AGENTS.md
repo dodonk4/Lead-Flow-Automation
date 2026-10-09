@@ -126,28 +126,37 @@ Una notificación debería incluir como mínimo:
 
 La integración debe estar aislada para poder probarla y modificarla sin afectar la lógica principal.
 
-## Estructura inicial
+## Estructura del repositorio
 
-Se propone una estructura similar a:
+El repositorio Git contiene tres áreas independientes:
 
 ```text
-src/
-├── controllers/
-├── services/
-├── repositories/
-├── models/
-├── routes/
-├── schemas/
-├── config/
-└── app.ts
+backend/
+├── src/
+│   ├── controllers/
+│   ├── services/
+│   ├── repositories/
+│   ├── models/
+│   ├── routes/
+│   ├── schemas/
+│   ├── config/
+│   └── app.ts
+├── tests/
+├── prisma/
+├── package.json
+└── .env.example
+
+frontend/
+├── src/
+├── package.json
+└── .env.example
 
 n8n/
-frontend/
-tests/
-prisma/
 ```
 
-Esta estructura puede modificarse si durante el desarrollo aparece una razón concreta para hacerlo.
+Backend y frontend son proyectos npm independientes: instalar dependencias y ejecutar scripts desde su respectiva carpeta. No agregar workspaces ni orquestadores en la raíz salvo que exista una razón concreta y acordada.
+
+`n8n/` contiene el workflow y su documentación de configuración.
 
 No crear carpetas o capas únicamente para aumentar la cantidad de abstracciones.
 

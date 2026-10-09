@@ -1,0 +1,30 @@
+# LeadFlow backend
+
+API Node.js + TypeScript + Express. Instala y ejecuta sus comandos desde esta carpeta; el frontend es un proyecto npm independiente en `../frontend`.
+
+## Configuración
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Configura `DATABASE_URL` para una instancia PostgreSQL accesible. No compartas ni publiques el `.env`.
+
+## Desarrollo y verificación
+
+```sh
+npm install
+npm run dev
+npm test
+npm run build
+```
+
+## Prisma
+
+```sh
+npm run db:generate
+npm run db:migrate
+npm run db:deploy
+```
+
+`db:migrate` crea y aplica migraciones de desarrollo; `db:deploy` aplica las migraciones existentes en el entorno configurado.
