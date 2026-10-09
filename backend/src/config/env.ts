@@ -8,4 +8,5 @@ const port = Number(portValue);
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
+  frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
 };
