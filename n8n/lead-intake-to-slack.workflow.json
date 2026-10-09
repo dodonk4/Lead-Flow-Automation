@@ -1,0 +1,243 @@
+{
+  "name": "LeadFlow form to API and Slack",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadflow-form",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "7ab77d47-5414-4e7e-91c9-9ebf9878b78c",
+      "name": "Receive lead form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        320
+      ],
+      "webhookId": "b7d2dca1-12d6-4cb9-81a4-8096dc98a862"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LEADFLOW_API_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {}
+      },
+      "id": "c65b423a-c859-4bde-9110-78ad22ad62ed",
+      "name": "Create lead in LeadFlow API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        320
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "53664789-f0d4-42d0-a883-06435176c0e8",
+              "leftValue": "={{ $json.data.assignedAdvisorId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e4bf53f8-cd73-43a7-8811-84301e016f78",
+      "name": "Has assigned advisor",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.LEADFLOW_SLACK_CHANNEL_ID }}",
+          "mode": "id"
+        },
+        "text": "={{ 'Nuevo lead en LeadFlow\\nEmpresa: ' + $('Create lead in LeadFlow API').first().json.data.companyName + '\\nContacto: ' + $('Create lead in LeadFlow API').first().json.data.contactName + '\\nServicio solicitado: ' + $('Create lead in LeadFlow API').first().json.data.serviceRequested + '\\nAsesor asignado (ID): ' + $('Create lead in LeadFlow API').first().json.data.assignedAdvisorId + '\\nEmail: ' + $('Create lead in LeadFlow API').first().json.data.email + '\\nDetalles: ' + ($('Create lead in LeadFlow API').first().json.data.details || 'Sin detalles') }}",
+        "otherOptions": {}
+      },
+      "id": "b12a12fb-d3be-4a56-a5a6-8a1d9f1a7c58",
+      "name": "Send lead notification to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        960,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $('Create lead in LeadFlow API').first().json.data, notification: { status: 'sent' } } }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "6d82c40b-86ca-4d4e-82f2-af294ad676df",
+      "name": "Respond lead created and notified",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $('Create lead in LeadFlow API').first().json.data, notification: { status: 'skipped', reason: 'no_assigned_advisor' } } }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "31e9c178-3f0b-4b09-a760-f22330b185ae",
+      "name": "Respond lead created without advisor",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        960,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'slack_delivery_unconfirmed', leadId: $('Create lead in LeadFlow API').first().json.data.id, message: 'LeadFlow created the lead, but Slack delivery was not confirmed. Inspect the n8n execution before retrying.' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "1843b1d1-31fc-491e-ac8b-95c0fa5a773a",
+      "name": "Respond Slack delivery unconfirmed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'leadflow_api_request_unconfirmed', message: 'The LeadFlow API request failed or timed out. Inspect the n8n execution and verify whether the lead was created before resubmitting, to avoid duplicates.' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "13d0019b-69c1-47dd-8912-9c4605747d1c",
+      "name": "Respond LeadFlow API request unconfirmed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        560
+      ]
+    }
+  ],
+  "connections": {
+    "Receive lead form": {
+      "main": [
+        [
+          {
+            "node": "Create lead in LeadFlow API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create lead in LeadFlow API": {
+      "main": [
+        [
+          {
+            "node": "Has assigned advisor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond LeadFlow API request unconfirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has assigned advisor": {
+      "main": [
+        [
+          {
+            "node": "Send lead notification to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond lead created without advisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send lead notification to Slack": {
+      "main": [
+        [
+          {
+            "node": "Respond lead created and notified",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Slack delivery unconfirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4fa5da59-49ef-43d5-8918-533329ecc713",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
