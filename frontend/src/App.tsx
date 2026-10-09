@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import CrmPage from "./CrmPage";
 
 type FormValues = {
   name: string;
@@ -61,7 +62,7 @@ function isWorkflowSuccess(value: unknown): value is WorkflowSuccess {
   );
 }
 
-function App() {
+function LeadFormPage() {
   const [values, setValues] = useState(initialValues);
   const [submission, setSubmission] = useState<SubmissionState>({
     status: "idle",
@@ -151,7 +152,7 @@ function App() {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="LeadFlow inicio">
+        <a className="brand" href="/" aria-label="LeadFlow inicio">
           <span className="brand-mark" aria-hidden="true">
             <span />
             <span />
@@ -159,6 +160,10 @@ function App() {
           </span>
           <span>leadflow</span>
         </a>
+        <nav className="topbar-nav" aria-label="Navegación principal">
+          <a href="/" aria-current="page">Nuevo lead</a>
+          <a href="/crm">CRM</a>
+        </nav>
         <div className="topbar-note">
           <span className="live-dot" />
           Automatización comercial
@@ -405,4 +410,6 @@ function FlowStep({
   );
 }
 
-export default App;
+export default function App() {
+  return window.location.pathname === "/crm" ? <CrmPage /> : <LeadFormPage />;
+}
