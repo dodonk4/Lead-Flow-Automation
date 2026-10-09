@@ -46,9 +46,11 @@ async function startServer(app: Express) {
 test("POST /api/leads creates a lead and returns 201", async (context) => {
   let receivedInput: CreateLeadInput | undefined;
   const server = await startServer(
-    createApp(async (leadInput) => {
-      receivedInput = leadInput;
-      return createdLead;
+    createApp({
+      createLead: async (leadInput) => {
+        receivedInput = leadInput;
+        return createdLead;
+      },
     }),
   );
   context.after(server.close);
@@ -73,9 +75,11 @@ test("POST /api/leads creates a lead and returns 201", async (context) => {
 test("POST /api/leads rejects invalid input without calling the use case", async (context) => {
   let useCaseCalled = false;
   const server = await startServer(
-    createApp(async () => {
-      useCaseCalled = true;
-      return createdLead;
+    createApp({
+      createLead: async () => {
+        useCaseCalled = true;
+        return createdLead;
+      },
     }),
   );
   context.after(server.close);
@@ -99,8 +103,10 @@ test("POST /api/leads returns 503 when PostgreSQL is unavailable", async (contex
     { code: "P1001", clientVersion: "6.12.0" },
   );
   const server = await startServer(
-    createApp(async () => {
-      throw persistenceError;
+    createApp({
+      createLead: async () => {
+        throw persistenceError;
+      },
     }),
   );
   context.after(server.close);
