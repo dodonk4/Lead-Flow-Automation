@@ -11,7 +11,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     }
 
     console.error("Prisma request failed:", error);
-    response.status(500).json({ error: "Could not persist lead" });
+    response.status(500).json({ error: "Database operation failed" });
     return;
   }
 
