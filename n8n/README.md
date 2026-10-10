@@ -1,6 +1,10 @@
 # LeadFlow form-to-Slack workflow
 
-Import `lead-intake-to-slack.workflow.json` into n8n. The workflow is inactive after import so it can be configured before use.
+The repository-root Docker Compose configuration includes an `n8n-init` one-shot service that runs automatically before the main n8n service. On a fresh volume it creates the configured local owner account, imports the workflow, and publishes it. The main n8n service starts only after initialization succeeds. On later starts, the init service detects the existing workflow and leaves it and its credentials/configuration untouched.
+
+For a fresh local demo, the owner account defaults to `leadflow@example.com` / `LeadFlow2026!`; override `N8N_OWNER_EMAIL` and `N8N_OWNER_PASSWORD` in the root `.env` as needed. These defaults are for localhost-only development, not public deployments.
+
+To change an already imported workflow, edit it in the n8n interface. This avoids replacing the Slack credential selection when n8n restarts.
 
 ## Configuration
 
@@ -16,6 +20,8 @@ N8N_BLOCK_ENV_ACCESS_IN_NODE=false
 
 `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` is required for the workflow expressions to read the two non-secret configuration values. This also allows expressions and Code nodes to read the n8n process environment, so only use it when workflow editors are trusted. Do not put credentials or tokens in these variables; store Slack credentials in n8n's credential manager. After importing, open **Send lead notification to Slack** and select the configured credential in the node's credential field. Replace the example channel ID with the Slack channel ID.
 
+When running with Docker Compose from the repository root, these values are provided by `docker-compose.yml`; the API URL is `http://backend:3000/api/leads` on the internal Compose network. The frontend is published on `http://localhost:5173` and calls the webhook at `http://localhost:5678/webhook/leadflow-form`. The exported Webhook node allows `http://localhost:5173`; if the frontend is hosted on another origin, update the node's **Allowed Origins (CORS)** option to that exact origin.
+
 Restart n8n after changing its environment. Then activate the workflow and use the production webhook URL displayed by **Receive lead form**. Submit a JSON `POST` whose body uses the backend's existing fields:
 
 ```json
@@ -28,7 +34,7 @@ Restart n8n after changing its environment. Then activate the workflow and use t
 }
 ```
 
-The workflow passes the webhook body unchanged to `POST /api/leads`; validation and advisor assignment remain in the backend. The API responds with `{ "data": { ...lead fields... } }`. The current response contains `assignedAdvisorId`, not the advisor's name or email, so Slack reports the assigned advisor ID rather than inventing a name or repeating assignment rules.
+The workflow passes the webhook body unchanged to `POST /api/leads`; validation and advisor assignment remain in the backend. The API responds with `{ "data": { ...lead fields... } }`. When the lead is assigned, `data.assignedAdvisor` contains the advisor's `id`, `name` and `email`, and Slack shows the advisor's name (falling back to the ID if it were missing).
 
 ## Outcomes and errors
 

@@ -17,7 +17,7 @@ Set `VITE_API_BASE_URL` to the backend API base URL (for example, `http://localh
 
 The CRM view uses `GET /api/leads` and `GET /api/leads/:id`. Its status label is derived from whether the lead has an assigned advisor; it is not stored as a separate lead status.
 
-The n8n workflow currently returns `201` with `{ data: lead, notification: { status: "sent" | "skipped" } }` when the flow completes. The lead includes `assignedAdvisorId`; the backend response does not include an advisor name. A Slack delivery error returns `502` with `error: "slack_delivery_unconfirmed"` and `leadId`, which the UI reports as a registered lead with an unconfirmed notification. An API call error returns `502` with `error: "leadflow_api_request_unconfirmed"`; because the result may be ambiguous, the UI warns against blindly resubmitting.
+The n8n workflow currently returns `201` with `{ data: lead, notification: { status: "sent" | "skipped" } }` when the flow completes. The lead includes `assignedAdvisorId` and, when assigned, `assignedAdvisor` (`id`, `name`, `email`); the form shows the advisor's name. A Slack delivery error returns `502` with `error: "slack_delivery_unconfirmed"` and `leadId`, which the UI reports as a registered lead with an unconfirmed notification. An API call error returns `502` with `error: "leadflow_api_request_unconfirmed"`; because the result may be ambiguous, the UI warns against blindly resubmitting.
 
 The backend schema has no separate budget field. The form therefore puts `Presupuesto estimado: <amount>` in the existing `details` field so the unchanged n8n workflow can pass it through to the backend and include it in the Slack details. The UI leaves the currency unspecified and indicates that the amount uses the submitter's currency.
 

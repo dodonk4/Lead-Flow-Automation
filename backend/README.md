@@ -1,18 +1,18 @@
 # LeadFlow backend
 
-API Node.js + TypeScript + Express. Instala y ejecuta sus comandos desde esta carpeta; el frontend es un proyecto npm independiente en `../frontend`.
+Node.js + TypeScript + Express API. Install and run its commands from this folder; the frontend is an independent npm project in `../frontend`.
 
-## Configuración
+## Configuration
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Configura `DATABASE_URL` para una instancia PostgreSQL accesible y `FRONTEND_ORIGIN` con el origen exacto desde el que se ejecutará el frontend (por defecto `http://localhost:5173`). No compartas ni publiques el `.env`.
+Set `DATABASE_URL` to a reachable PostgreSQL instance and `FRONTEND_ORIGIN` to the exact origin the frontend runs from (default `http://localhost:5173`). Do not share or publish the `.env` file.
 
-La API de lectura del CRM expone `GET /api/leads` y `GET /api/leads/:id`; el origen de frontend autorizado por CORS se controla mediante `FRONTEND_ORIGIN`.
+The CRM read API exposes `GET /api/leads` and `GET /api/leads/:id`; the frontend origin allowed by CORS is controlled by `FRONTEND_ORIGIN`.
 
-## Desarrollo y verificación
+## Development and verification
 
 ```sh
 npm install
@@ -27,6 +27,8 @@ npm run build
 npm run db:generate
 npm run db:migrate
 npm run db:deploy
+npm run db:seed
 ```
 
-`db:migrate` crea y aplica migraciones de desarrollo; `db:deploy` aplica las migraciones existentes en el entorno configurado.
+`db:migrate` creates and applies development migrations; `db:deploy` applies the existing migrations in the configured environment.
+`db:seed` loads the three fictitious advisors and their assignment rules idempotently; it does not modify existing records.

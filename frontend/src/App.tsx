@@ -17,6 +17,7 @@ type LeadResult = {
   serviceRequested: string;
   details: string | null;
   assignedAdvisorId: string | null;
+  assignedAdvisor?: { name: string } | null;
 };
 
 type WorkflowSuccess = {
@@ -340,7 +341,8 @@ function LeadFormPage() {
                     <span>
                       <small>ASESOR</small>
                       <b>
-                        {submission.result.data.assignedAdvisorId ??
+                        {submission.result.data.assignedAdvisor?.name ??
+                          submission.result.data.assignedAdvisorId ??
                           "Pendiente de asignación"}
                       </b>
                     </span>

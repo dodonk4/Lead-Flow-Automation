@@ -2,6 +2,12 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../config/database";
 import type { DatabaseClient } from "../config/database";
 
+const assignedAdvisorInclude = {
+  assignedAdvisor: {
+    select: { id: true, name: true, email: true },
+  },
+} as const;
+
 export const createLead = (
   data: Prisma.LeadCreateInput,
   tx: DatabaseClient = prisma,
@@ -9,22 +15,14 @@ export const createLead = (
 
 export const listLeads = () =>
   prisma.lead.findMany({
-    include: {
-      assignedAdvisor: {
-        select: { id: true, name: true, email: true },
-      },
-    },
+    include: assignedAdvisorInclude,
     orderBy: { createdAt: "desc" },
   });
 
 export const findLeadWithAdvisorById = (id: string) =>
   prisma.lead.findUnique({
     where: { id },
-    include: {
-      assignedAdvisor: {
-        select: { id: true, name: true, email: true },
-      },
-    },
+    include: assignedAdvisorInclude,
   });
 
 export const findLeadById = (id: string) =>
@@ -38,4 +36,5 @@ export const assignLeadToAdvisor = (
   tx.lead.update({
     where: { id: leadId },
     data: { assignedAdvisorId: advisorId },
+    include: assignedAdvisorInclude,
   });
