@@ -1,4 +1,5 @@
 {
+  "id": "leadflow-form-slack",
   "name": "LeadFlow form to API and Slack",
   "nodes": [
     {
@@ -6,7 +7,9 @@
         "httpMethod": "POST",
         "path": "leadflow-form",
         "responseMode": "responseNode",
-        "options": {}
+        "options": {
+          "allowedOrigins": "http://localhost:5173"
+        }
       },
       "id": "7ab77d47-5414-4e7e-91c9-9ebf9878b78c",
       "name": "Receive lead form",
