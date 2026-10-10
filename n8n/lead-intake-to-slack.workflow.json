@@ -85,7 +85,7 @@
           "value": "={{ $env.LEADFLOW_SLACK_CHANNEL_ID }}",
           "mode": "id"
         },
-        "text": "={{ 'Nuevo lead en LeadFlow\\nEmpresa: ' + $('Create lead in LeadFlow API').first().json.data.companyName + '\\nContacto: ' + $('Create lead in LeadFlow API').first().json.data.contactName + '\\nServicio solicitado: ' + $('Create lead in LeadFlow API').first().json.data.serviceRequested + '\\nAsesor asignado (ID): ' + $('Create lead in LeadFlow API').first().json.data.assignedAdvisorId + '\\nEmail: ' + $('Create lead in LeadFlow API').first().json.data.email + '\\nDetalles: ' + ($('Create lead in LeadFlow API').first().json.data.details || 'Sin detalles') }}",
+        "text": "={{ 'Nuevo lead en LeadFlow\\nEmpresa: ' + $('Create lead in LeadFlow API').first().json.data.companyName + '\\nContacto: ' + $('Create lead in LeadFlow API').first().json.data.contactName + '\\nServicio solicitado: ' + $('Create lead in LeadFlow API').first().json.data.serviceRequested + '\\nAsesor asignado: ' + ($('Create lead in LeadFlow API').first().json.data.assignedAdvisor?.name || $('Create lead in LeadFlow API').first().json.data.assignedAdvisorId) + '\\nEmail: ' + $('Create lead in LeadFlow API').first().json.data.email + '\\nDetalles: ' + ($('Create lead in LeadFlow API').first().json.data.details || 'Sin detalles') }}",
         "otherOptions": {}
       },
       "id": "b12a12fb-d3be-4a56-a5a6-8a1d9f1a7c58",
