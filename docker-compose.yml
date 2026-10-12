@@ -64,32 +64,26 @@ services:
     depends_on:
       n8n-init:
         condition: service_completed_successfully
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
   n8n-init:
     image: n8nio/n8n:2.5.0
-    entrypoint: ["/bin/sh"]
-    command: ["/data/init-n8n.sh"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if n8n list:workflow --onlyId | grep -Fxq leadflow-form-slack; then
+          echo "LeadFlow workflow already imported; leaving it untouched."
+        else
+          n8n import:workflow --input=/data/lead-intake-to-slack.workflow.json &&
+          n8n publish:workflow --id=leadflow-form-slack
+        fi
     environment:
-      N8N_HOST: localhost
-      N8N_LISTEN_ADDRESS: 0.0.0.0
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      N8N_SECURE_COOKIE: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      GENERIC_TIMEZONE: America/Argentina/Buenos_Aires
-      LEADFLOW_API_URL: http://backend:3000/api/leads
-      LEADFLOW_SLACK_CHANNEL_ID: ${LEADFLOW_SLACK_CHANNEL_ID:-}
-      N8N_OWNER_EMAIL: ${N8N_OWNER_EMAIL:-leadflow@example.com}
-      N8N_OWNER_PASSWORD: ${N8N_OWNER_PASSWORD:-LeadFlow2026!}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/lead-intake-to-slack.workflow.json:/data/lead-intake-to-slack.workflow.json:ro
-      - ./n8n/init-n8n.sh:/data/init-n8n.sh:ro
-    depends_on:
-      backend:
-        condition: service_healthy
     restart: "no"
 
   frontend:

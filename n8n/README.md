@@ -1,8 +1,8 @@
 # LeadFlow form-to-Slack workflow
 
-The repository-root Docker Compose configuration includes an `n8n-init` one-shot service that runs automatically before the main n8n service. On a fresh volume it creates the configured local owner account, imports the workflow, and publishes it. The main n8n service starts only after initialization succeeds. On later starts, the init service detects the existing workflow and leaves it and its credentials/configuration untouched.
+The repository-root Docker Compose configuration includes an `n8n-init` one-shot service that runs automatically before the main n8n service. On a fresh volume it imports the workflow and publishes it. The main n8n service starts only after initialization succeeds. On later starts, the init service detects the existing workflow and leaves it and its credentials/configuration untouched.
 
-For a fresh local demo, the owner account defaults to `leadflow@example.com` / `LeadFlow2026!`; override `N8N_OWNER_EMAIL` and `N8N_OWNER_PASSWORD` in the root `.env` as needed. These defaults are for localhost-only development, not public deployments.
+No account is created automatically: the first time you open `http://localhost:5678`, n8n asks you to register the local owner account.
 
 To change an already imported workflow, edit it in the n8n interface. This avoids replacing the Slack credential selection when n8n restarts.
 

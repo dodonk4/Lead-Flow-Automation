@@ -107,7 +107,7 @@ The service values are stored in Spanish, exactly as the form sends them. Rules 
 
 ## n8n integration
 
-The workflow `n8n/lead-intake-to-slack.workflow.json` receives the form through a webhook, calls the backend and responds to the form according to the actual result. Compose includes an `n8n-init` service that, before n8n starts, creates the local owner account, imports the workflow and publishes it. Whoever clones the repository does not have to import anything manually. On later starts it preserves the existing workflow and configuration. More details in [n8n/README.md](n8n/README.md).
+The workflow `n8n/lead-intake-to-slack.workflow.json` receives the form through a webhook, calls the backend and responds to the form according to the actual result. Compose includes an `n8n-init` service that, before n8n starts, imports the workflow and publishes it. On first access, n8n asks you to create your own account. Whoever clones the repository does not have to import anything manually. On later starts it preserves the existing workflow and configuration. More details in [n8n/README.md](n8n/README.md).
 
 ## Slack integration
 

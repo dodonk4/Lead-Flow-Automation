@@ -107,7 +107,7 @@ Las reglas viven en la tabla `assignment_rules`, así que se pueden cambiar sin 
 
 ## Integración con n8n
 
-El workflow `n8n/lead-intake-to-slack.workflow.json` recibe el formulario por webhook, llama al backend y responde al formulario según el resultado real. Compose incluye un servicio `n8n-init` que, antes de iniciar n8n, crea la cuenta local de propietario, importa el workflow y lo publica. Quien clone el repositorio no tiene que importar nada manualmente. En arranques posteriores conserva el workflow y la configuración existentes. Más detalles en [n8n/README.es.md](n8n/README.es.md).
+El workflow `n8n/lead-intake-to-slack.workflow.json` recibe el formulario por webhook, llama al backend y responde al formulario según el resultado real. Compose incluye un servicio `n8n-init` que, antes de iniciar n8n, importa el workflow y lo publica. Al abrir n8n por primera vez, te pedirá crear tu propia cuenta. Quien clone el repositorio no tiene que importar nada manualmente. En arranques posteriores conserva el workflow y la configuración existentes. Más detalles en [n8n/README.es.md](n8n/README.es.md).
 
 ## Integración con Slack
 
