@@ -4,6 +4,8 @@
 
 **De un formulario web a un asesor notificado en Slack, sin que nadie copie datos a mano.**
 
+> **Estado de `feat/zoho-crm`:** el Compose actual solo inicia frontend y n8n; el flujo Zoho/Slack aún no está configurado. Las secciones que describen backend, PostgreSQL y CRM reflejan la implementación v1 conservada en el repositorio, no servicios que arranque este Compose.
+
 LeadFlow es una demo de automatización empresarial: toma el proceso de captar un contacto comercial, registrarlo, decidir quién debe atenderlo y avisarle. Está pensada para mostrar cómo analizar un proceso, conectar sistemas y automatizar una tarea repetitiva. No es un CRM comercial: el CRM es una simulación mínima al servicio del flujo.
 
 ## Problema empresarial
@@ -107,41 +109,31 @@ Las reglas viven en la tabla `assignment_rules`, así que se pueden cambiar sin 
 
 ## Integración con n8n
 
-El workflow `n8n/lead-intake-to-slack.workflow.json` recibe el formulario por webhook, llama al backend y responde al formulario según el resultado real. Compose incluye un servicio `n8n-init` que, antes de iniciar n8n, crea la cuenta local de propietario, importa el workflow y lo publica. Quien clone el repositorio no tiene que importar nada manualmente. En arranques posteriores conserva el workflow y la configuración existentes. Más detalles en [n8n/README.es.md](n8n/README.es.md).
+El Compose v2 inicia n8n sin importar ni publicar workflows. El workflow `n8n/lead-intake-to-slack.workflow.json` es de v1 y depende del backend; no lo actives como flujo v2. En el primer acceso a n8n, crea manualmente el usuario owner y elige una contraseña propia. La integración Zoho/Slack se configurará en tickets posteriores. Más detalles en [n8n/README.es.md](n8n/README.es.md).
 
 ## Integración con Slack
 
-El nodo de Slack publica un mensaje con empresa, contacto, servicio solicitado, email, detalles y asesor asignado. Las credenciales de Slack se guardan en el gestor de credenciales de n8n, nunca en el repositorio ni en el frontend. Para activarlo:
-
-1. En n8n, asigna tu credencial de Slack al nodo **Send lead notification to Slack**.
-2. Define `LEADFLOW_SLACK_CHANNEL_ID` en `.env`.
-3. Recrea n8n: `docker compose up -d --force-recreate n8n`.
-
-Si Slack no está configurado, el lead se registra igualmente y el formulario informa que el aviso quedó pendiente de confirmar; el flujo no lo presenta como enviado.
+No hay un workflow Slack activo en el Compose v2. Cuando se implemente la integración, las credenciales deberán guardarse en el gestor de n8n y la notificación ocurrirá después de que Zoho confirme el guardado.
 
 ## Cómo ejecutar el proyecto
 
 Requisito: Docker Desktop con Docker Compose. Desde la raíz, en PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Compose levanta PostgreSQL, aplica migraciones y seed, inicia el backend, inicializa y arranca n8n, y sirve el frontend.
+Opcionalmente, configura `VITE_N8N_WEBHOOK_URL` en `.env` (ver `.env.example`) si necesitas compilar una URL de webhook distinta. El primer arranque requiere crear manualmente el usuario owner de n8n en su interfaz; no hay contraseña predeterminada ni importación automática de workflows.
 
 | Servicio | URL |
 | --- | --- |
 | Formulario | <http://localhost:5173> |
-| CRM (solo lectura) | <http://localhost:5173/crm> |
 | n8n | <http://localhost:5678> |
-| Health del backend | <http://localhost:3000/health> |
 
-Credenciales locales de n8n (solo desarrollo, puertos en `127.0.0.1`): `leadflow@example.com` / `LeadFlow2026!`; puedes cambiarlas en `.env`. Los datos persisten en los volúmenes `postgres_data` y `n8n_data`.
+Los puertos se enlazan a `127.0.0.1`. La configuración persiste en el volumen aislado `leadflow-v2-compose-n8n-data`; el backend, PostgreSQL y el volumen v1 no se inician, modifican ni eliminan.
 
 ```powershell
-docker compose down       # detiene y conserva los datos
-docker compose down -v    # borra también los datos (irreversible)
+docker compose down       # detiene los servicios y conserva los datos
 ```
 
 ## Cómo ejecutar los tests
