@@ -1,0 +1,284 @@
+{
+  "name": "LeadFlow Zoho account qualification (manual tests)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d001",
+      "name": "Run qualification tests manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d001",
+              "name": "testCase",
+              "value": "fields",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d002",
+              "name": "apiBaseUrl",
+              "value": "https://REPLACE_WITH_YOUR_ZOHO_API_HOST/crm/v8",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d003",
+              "name": "testEmail",
+              "value": "leadflow-qualification-REPLACE-ME@example.invalid",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d004",
+              "name": "invalidOwnerTestEmail",
+              "value": "leadflow-invalid-owner-REPLACE-ME@example.invalid",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d005",
+              "name": "testCompany",
+              "value": "LeadFlow Qualification Test",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d006",
+              "name": "testLastName",
+              "value": "Qualification Test",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d007",
+              "name": "activeOwnerId",
+              "value": "REPLACE_WITH_ACTIVE_ZOHO_USER_ID",
+              "type": "string"
+            },
+            {
+              "id": "20c16493-f1d4-4d2c-a42b-c0f85fb0d008",
+              "name": "nonexistentOwnerId",
+              "value": "REPLACE_WITH_NONEXISTENT_ZOHO_USER_ID",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d002",
+      "name": "Test parameters (edit before write tests)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 320],
+      "notesInFlow": true,
+      "notes": "Safe default: testCase=fields only reads Lead field metadata. Before write tests, replace the Zoho API host, use a unique test email you control, and set real/known-nonexistent Zoho user IDs. Never use a real person's lead data."
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "30c16493-f1d4-4d2c-a42b-c0f85fb0d001",
+                    "leftValue": "={{ $json.testCase }}",
+                    "rightValue": "fields",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Get Lead fields"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "30c16493-f1d4-4d2c-a42b-c0f85fb0d002",
+                    "leftValue": "={{ $json.testCase }}",
+                    "rightValue": "users",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "List active users"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "30c16493-f1d4-4d2c-a42b-c0f85fb0d003",
+                    "leftValue": "={{ $json.testCase }}",
+                    "rightValue": "upsert",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Upsert with active Owner"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "30c16493-f1d4-4d2c-a42b-c0f85fb0d004",
+                    "leftValue": "={{ $json.testCase }}",
+                    "rightValue": "invalid-owner",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Upsert with nonexistent Owner"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "none" }
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d003",
+      "name": "Choose one qualification test",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [700, 320]
+    },
+    {
+      "parameters": { "resource": "lead", "operation": "getFields" },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d004",
+      "name": "Get Lead fields (native Zoho node)",
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [980, 100],
+      "notesInFlow": true,
+      "notes": "Select your saved Zoho OAuth credential on this node after import. Review API names, mandatory fields and max lengths in the output."
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "url": "={{ $json.apiBaseUrl.replace(/\\/+$/, '') + '/users?type=ActiveUsers' }}",
+        "options": {}
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d005",
+      "name": "List active Zoho users (HTTP API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 240],
+      "notesInFlow": true,
+      "notes": "Select your saved Zoho OAuth credential. Use the API host for your Zoho data center. Review active user IDs and availability; do not treat demo advisors as actual users."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.apiBaseUrl.replace(/\\/+$/, '') + '/Leads/upsert' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { data: [{ Company: $json.testCompany, Last_Name: $json.testLastName, Email: $json.testEmail, Owner: { id: $json.activeOwnerId } }], duplicate_check_fields: ['Email'] } }}",
+        "options": {}
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d006",
+      "name": "Upsert test Lead with active Owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 400],
+      "onError": "continueErrorOutput",
+      "notesInFlow": true,
+      "notes": "Select Zoho OAuth credential. This writes a synthetic Lead. Run twice with the same unique testEmail and compare data[0].action/details.id. Add any account-specific mandatory fields discovered in the metadata branch."
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Test parameters (edit before write tests)').first().json.apiBaseUrl.replace(/\\/+$/, '') + '/Leads/' + $('Upsert test Lead with active Owner').first().json.data[0].details.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "options": {}
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d007",
+      "name": "Read back Lead and verify Owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 400],
+      "notesInFlow": true,
+      "notes": "Select the same Zoho OAuth credential. Confirm the returned record Owner.id equals activeOwnerId. If Zoho returned a per-record error instead of details.id, inspect the preceding node output and do not treat this as success."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.apiBaseUrl.replace(/\\/+$/, '') + '/Leads/upsert' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { data: [{ Company: $json.testCompany, Last_Name: $json.testLastName, Email: $json.invalidOwnerTestEmail, Owner: { id: $json.nonexistentOwnerId } }], duplicate_check_fields: ['Email'] } }}",
+        "options": {}
+      },
+      "id": "a8d30d2b-7ddc-4dd0-bd11-0b5f5a00d008",
+      "name": "Negative test: nonexistent Owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 560],
+      "onError": "continueErrorOutput",
+      "notesInFlow": true,
+      "notes": "Select Zoho OAuth credential. Before running, replace nonexistentOwnerId with an ID-shaped value that is known not to exist and replace invalidOwnerTestEmail with a unique synthetic email. Inspect the response body for a record-level rejection; if it succeeds, inspect Zoho immediately for an unintended record and clean it up manually only if authorized."
+    }
+  ],
+  "connections": {
+    "Run qualification tests manually": {
+      "main": [[{ "node": "Test parameters (edit before write tests)", "type": "main", "index": 0 }]]
+    },
+    "Test parameters (edit before write tests)": {
+      "main": [[{ "node": "Choose one qualification test", "type": "main", "index": 0 }]]
+    },
+    "Choose one qualification test": {
+      "main": [
+        [{ "node": "Get Lead fields (native Zoho node)", "type": "main", "index": 0 }],
+        [{ "node": "List active Zoho users (HTTP API)", "type": "main", "index": 0 }],
+        [{ "node": "Upsert test Lead with active Owner", "type": "main", "index": 0 }],
+        [{ "node": "Negative test: nonexistent Owner", "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert test Lead with active Owner": {
+      "main": [[{ "node": "Read back Lead and verify Owner", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "tags": []
+}
