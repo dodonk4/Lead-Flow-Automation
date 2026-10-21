@@ -4,6 +4,8 @@
 
 **From a web form to an advisor notified on Slack, with nobody copying data by hand.**
 
+> **`feat/zoho-crm` status:** the current Compose stack starts only the frontend and n8n; the Zoho/Slack flow is not configured yet. Sections describing the backend, PostgreSQL, and CRM reflect the v1 implementation retained in the repository, not services started by this Compose stack.
+
 LeadFlow is a business automation demo: it takes the process of capturing a sales inquiry, registering it, deciding who should handle it and notifying them. It is meant to show how to analyze a process, connect systems and automate a repetitive task. It is not a commercial CRM: the CRM is a minimal simulation that serves the flow.
 
 ## Business problem
@@ -107,41 +109,31 @@ The service values are stored in Spanish, exactly as the form sends them. Rules 
 
 ## n8n integration
 
-The workflow `n8n/lead-intake-to-slack.workflow.json` receives the form through a webhook, calls the backend and responds to the form according to the actual result. Compose includes an `n8n-init` service that, before n8n starts, creates the local owner account, imports the workflow and publishes it. Whoever clones the repository does not have to import anything manually. On later starts it preserves the existing workflow and configuration. More details in [n8n/README.md](n8n/README.md).
+The v2 Compose stack starts n8n without importing or publishing workflows. `n8n/lead-intake-to-slack.workflow.json` is a v1 workflow that depends on the backend; do not activate it as a v2 flow. On first access to n8n, manually create the owner account and choose your own password. Zoho/Slack integration will be configured in later tickets. See [n8n/README.md](n8n/README.md) for details.
 
 ## Slack integration
 
-The Slack node posts a message with company, contact, requested service, email, details and assigned advisor. Slack credentials are stored in n8n's credential manager, never in the repository or the frontend. To enable it:
-
-1. In n8n, assign your Slack credential to the **Send lead notification to Slack** node.
-2. Set `LEADFLOW_SLACK_CHANNEL_ID` in `.env`.
-3. Recreate n8n: `docker compose up -d --force-recreate n8n`.
-
-If Slack is not configured, the lead is still registered and the form reports that the notification is pending confirmation; the flow does not present it as sent.
+There is no active Slack workflow in the v2 Compose stack. When the integration is implemented, credentials must be stored in n8n's credential manager and notification must follow Zoho's confirmation that the lead was saved.
 
 ## How to run the project
 
 Requirement: Docker Desktop with Docker Compose. From the repository root, in PowerShell:
 
 ```powershell
-Copy-Item .env.example .env
 docker compose up --build
 ```
 
-Compose starts PostgreSQL, applies migrations and the seed, starts the backend, initializes and starts n8n, and serves the frontend.
+Optionally set `VITE_N8N_WEBHOOK_URL` in `.env` (see `.env.example`) to build with a different webhook URL. The first startup requires manually creating the n8n owner account in its UI; there is no default password or automatic workflow import.
 
 | Service | URL |
 | --- | --- |
 | Form | <http://localhost:5173> |
-| CRM (read-only) | <http://localhost:5173/crm> |
 | n8n | <http://localhost:5678> |
-| Backend health | <http://localhost:3000/health> |
 
-Local n8n credentials (development only, ports bound to `127.0.0.1`): `leadflow@example.com` / `LeadFlow2026!`; you can change them in `.env`. Data persists in the `postgres_data` and `n8n_data` volumes.
+Ports are bound to `127.0.0.1`. Configuration persists in the isolated `leadflow-v2-compose-n8n-data` volume; the backend, PostgreSQL, and v1 volume are not started, modified, or deleted.
 
 ```powershell
-docker compose down       # stops and keeps the data
-docker compose down -v    # also deletes the data (irreversible)
+docker compose down       # stops services and keeps the data
 ```
 
 ## How to run the tests

@@ -1,46 +1,23 @@
-# LeadFlow form-to-Slack workflow
+# n8n in LeadFlow v2
 
-The repository-root Docker Compose configuration includes an `n8n-init` one-shot service that runs automatically before the main n8n service. On a fresh volume it creates the configured local owner account, imports the workflow, and publishes it. The main n8n service starts only after initialization succeeds. On later starts, the init service detects the existing workflow and leaves it and its credentials/configuration untouched.
+The `feat/zoho-crm` Compose stack runs n8n `2.5.0` at `http://localhost:5678`, bound only to `127.0.0.1`. There is no `n8n-init` service: on first access, create the n8n owner manually in its setup wizard and choose your own password.
 
-For a fresh local demo, the owner account defaults to `leadflow@example.com` / `LeadFlow2026!`; override `N8N_OWNER_EMAIL` and `N8N_OWNER_PASSWORD` in the root `.env` as needed. These defaults are for localhost-only development, not public deployments.
-
-To change an already imported workflow, edit it in the n8n interface. This avoids replacing the Slack credential selection when n8n restarts.
+Startup does not import or publish workflows. `lead-intake-to-slack.workflow.json` belongs to v1 and depends on the backend; do not activate it as a v2 workflow. Zoho/Slack configuration and a functional workflow will be handled by later tickets.
 
 ## Configuration
 
-Set these environment variables on the n8n process/container:
+The configurable webhook URL compiled into Vite is `VITE_N8N_WEBHOOK_URL`. Its local example is `http://localhost:5678/webhook/leadflow-form`, with no credentials or tokens. Optionally configure it in the repository-root `.env`; rebuild the frontend to apply Vite changes:
 
-```env
-LEADFLOW_API_URL=http://host.docker.internal:3000/api/leads
-LEADFLOW_SLACK_CHANNEL_ID=REPLACE_WITH_SLACK_CHANNEL_ID
-N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+```powershell
+docker compose up --build --detach
 ```
 
-`LEADFLOW_API_URL` is the existing backend endpoint, including `/api/leads`. If n8n and the backend run on the same Docker network, use the backend service name instead (for example, `http://backend:3000/api/leads`). `host.docker.internal` is suitable for reaching a host-run backend from Docker Desktop; adjust it for other deployments.
+No environment variables are needed for passwords, Zoho Owners, or Slack credentials. Add those credentials to n8n's credential manager only when the corresponding workflow is ready; never put them in the frontend, `.env.example`, or workflow exports.
 
-`N8N_BLOCK_ENV_ACCESS_IN_NODE=false` is required for the workflow expressions to read the two non-secret configuration values. This also allows expressions and Code nodes to read the n8n process environment, so only use it when workflow editors are trusted. Do not put credentials or tokens in these variables; store Slack credentials in n8n's credential manager. After importing, open **Send lead notification to Slack** and select the configured credential in the node's credential field. Replace the example channel ID with the Slack channel ID.
+Compose keeps access local, uses HTTP for development, and sets `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. `N8N_SECURE_COOKIE=false` is needed only for the local HTTP interface. Do not bind ports to a public interface or expose the editor. CORS does not authenticate requests or impose usage limits.
 
-When running with Docker Compose from the repository root, these values are provided by `docker-compose.yml`; the API URL is `http://backend:3000/api/leads` on the internal Compose network. The frontend is published on `http://localhost:5173` and calls the webhook at `http://localhost:5678/webhook/leadflow-form`. The exported Webhook node allows `http://localhost:5173`; if the frontend is hosted on another origin, update the node's **Allowed Origins (CORS)** option to that exact origin.
+## Persistence
 
-Restart n8n after changing its environment. Then activate the workflow and use the production webhook URL displayed by **Receive lead form**. Submit a JSON `POST` whose body uses the backend's existing fields:
+The `leadflow-v2-compose-n8n-data` volume stores n8n configuration, credentials, workflows, and its internal database; it is not lead storage. Data survives restarts and is separate from the v1 `n8n_data` volume. `docker compose down` preserves configuration; do not use `docker compose down -v` or delete volumes as cleanup.
 
-```json
-{
-  "companyName": "Acme Inc.",
-  "contactName": "Alex Example",
-  "email": "alex@example.com",
-  "serviceRequested": "Automation",
-  "details": "Optional details"
-}
-```
-
-The workflow passes the webhook body unchanged to `POST /api/leads`; validation and advisor assignment remain in the backend. The API responds with `{ "data": { ...lead fields... } }`. When the lead is assigned, `data.assignedAdvisor` contains the advisor's `id`, `name` and `email`, and Slack shows the advisor's name (falling back to the ID if it were missing).
-
-## Outcomes and errors
-
-- `201` and `notification.status: "sent"`: the API returned the created lead and n8n's Slack node confirmed the send.
-- `201` and `notification.status: "skipped"`: the API created the lead but returned no assigned advisor, so the workflow did not send a Slack message.
-- `502` with `slack_delivery_unconfirmed`: the API created the lead, but the Slack node did not confirm delivery. Inspect the failed node and n8n execution before retrying; this workflow does not retry Slack automatically.
-- `502` with `leadflow_api_request_unconfirmed`: the API request failed or timed out. The outcome may be unknown if the connection failed after the backend committed the lead. Inspect the execution and verify whether the lead exists before resubmitting to avoid creating a duplicate.
-
-No credentials are embedded in the exported workflow. Slack failures and backend-call failures are routed to explicit webhook responses; they are never represented as successful completion.
+See the [setup guide](../docs/setup.md) to start the stack and back up its data.

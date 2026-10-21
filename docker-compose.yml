@@ -1,47 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-leadflow}
-      POSTGRES_USER: ${POSTGRES_USER:-leadflow}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-leadflow_dev}
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    restart: unless-stopped
-
-  backend:
-    build:
-      context: ./backend
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      FRONTEND_ORIGIN: http://localhost:5173
-      DATABASE_URL: postgresql://${POSTGRES_USER:-leadflow}:${POSTGRES_PASSWORD:-leadflow_dev}@postgres:5432/${POSTGRES_DB:-leadflow}?schema=public
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: ["sh", "-c", "npm run db:deploy && npm run db:seed && npm start"]
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
-    restart: unless-stopped
-
   n8n:
     image: n8nio/n8n:2.5.0
     environment:
@@ -52,59 +9,44 @@ services:
       N8N_EDITOR_BASE_URL: http://localhost:5678/
       WEBHOOK_URL: http://localhost:5678/
       N8N_SECURE_COOKIE: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       GENERIC_TIMEZONE: America/Argentina/Buenos_Aires
-      LEADFLOW_API_URL: http://backend:3000/api/leads
-      LEADFLOW_SLACK_CHANNEL_ID: ${LEADFLOW_SLACK_CHANNEL_ID:-}
     ports:
       - "127.0.0.1:5678:5678"
     volumes:
-      - n8n_data:/home/node/.n8n
-    depends_on:
-      n8n-init:
-        condition: service_completed_successfully
+      - n8n_v2_data:/home/node/.n8n
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5678/healthz').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
     restart: unless-stopped
-
-  n8n-init:
-    image: n8nio/n8n:2.5.0
-    entrypoint: ["/bin/sh"]
-    command: ["/data/init-n8n.sh"]
-    environment:
-      N8N_HOST: localhost
-      N8N_LISTEN_ADDRESS: 0.0.0.0
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      N8N_SECURE_COOKIE: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      GENERIC_TIMEZONE: America/Argentina/Buenos_Aires
-      LEADFLOW_API_URL: http://backend:3000/api/leads
-      LEADFLOW_SLACK_CHANNEL_ID: ${LEADFLOW_SLACK_CHANNEL_ID:-}
-      N8N_OWNER_EMAIL: ${N8N_OWNER_EMAIL:-leadflow@example.com}
-      N8N_OWNER_PASSWORD: ${N8N_OWNER_PASSWORD:-LeadFlow2026!}
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - ./n8n/lead-intake-to-slack.workflow.json:/data/lead-intake-to-slack.workflow.json:ro
-      - ./n8n/init-n8n.sh:/data/init-n8n.sh:ro
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: "no"
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_N8N_WEBHOOK_URL: http://localhost:5678/webhook/leadflow-form
-        VITE_API_BASE_URL: http://localhost:3000/api
+        VITE_N8N_WEBHOOK_URL: ${VITE_N8N_WEBHOOK_URL:-http://localhost:5678/webhook/leadflow-form}
     ports:
       - "127.0.0.1:5173:4173"
-    depends_on:
-      backend:
-        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4173/').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     restart: unless-stopped
 
 volumes:
-  postgres_data:
-  n8n_data:
+  n8n_v2_data:
+    name: leadflow-v2-compose-n8n-data
