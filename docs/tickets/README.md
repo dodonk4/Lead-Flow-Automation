@@ -6,7 +6,7 @@ TICKET-001 está **DONE** por confirmación del usuario de que los casos pasaron
 |---:|---|---|---|---|
 | 1 | [TICKET-001 — Verificar Zoho, usuarios y contrato](TICKET-001.md) | DONE | P0 | — |
 | 2 | [TICKET-002 — Docker mínimo y configuración segura](TICKET-002.md) | DONE | P0 | 001 |
-| 3 | [TICKET-003 — Validación y normalización n8n](TICKET-003.md) | TODO | P0 | 001, 002 |
+| 3 | [TICKET-003 — Validación y normalización n8n](TICKET-003.md) | DONE | P0 | 001, 002 |
 | 4 | [TICKET-004 — Reglas y propietarios Zoho](TICKET-004.md) | TODO | P0 | 001, 003 |
 | 5 | [TICKET-005 — Upsert de Leads por email](TICKET-005.md) | TODO | P0 | 004 |
 | 6 | [TICKET-006 — Slack y respuestas honestas](TICKET-006.md) | TODO | P0 | 005 |

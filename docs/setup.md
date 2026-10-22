@@ -43,6 +43,8 @@ La única variable de Compose configurable por el usuario es `VITE_N8N_WEBHOOK_U
 
 Las credenciales de Zoho y Slack se crearán manualmente en el gestor de credenciales de n8n cuando los workflows correspondientes estén listos. Importar, configurar, probar y activar el workflow de integración queda para tickets posteriores; no uses el workflow v1 que llama al backend retirado del Compose.
 
+`n8n/leadflow-form-validation.workflow.json` es un export temporal e inactivo de TICKET-003 para verificar el contrato del webhook. No lo actives ni lo presentes como flujo final; no guarda leads ni incluye Zoho/Slack. Compose tampoco lo importa automáticamente. El formulario envía el texto JSON con `Content-Type: text/plain` para que n8n pueda devolver un 400 controlado incluso si el JSON está malformado; un cliente directo que use `application/json` recibirá el 422 del parser de n8n ante sintaxis malformada. CORS no autentica ni limita estas solicitudes.
+
 ## Volúmenes y recuperación
 
 - Usa `docker compose down` para detener la demo; conserva el volumen.

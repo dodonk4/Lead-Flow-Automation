@@ -17,6 +17,8 @@ El formulario de `frontend/src/App.tsx` ya envía POST al webhook `VITE_N8N_WEBH
 
 El workflow `n8n/lead-intake-to-slack.workflow.json` es el workflow v1: llama al backend y no es iniciado por el Compose v2. El Compose actual contiene únicamente frontend y n8n 2.5.0, enlazados a loopback; no inicia backend, PostgreSQL ni un servicio inicializador. La cuenta owner se crea manualmente en el editor y ningún workflow se importa o publica automáticamente. El volumen `leadflow-v2-compose-n8n-data` aísla los datos nuevos del volumen v1.
 
+TICKET-003 añade `n8n/leadflow-form-validation.workflow.json` como export de prueba inactivo. El webhook `POST leadflow-form` acepta el JSON del formulario como texto `text/plain`, lo parsea y rechaza objetos/valores fuera del contrato antes de normalizar; no contiene integraciones ni guarda leads. El formulario usa este tipo de contenido para que el JSON malformado llegue a los nodos y reciba un 400 controlado en lugar del 422 previo al workflow de n8n. Un cliente que envíe sintaxis malformada como `application/json` todavía recibe ese 422 del parser n8n. Los límites de captura son los del contrato anterior (empresa/contacto 160, email 320, servicio 100); `details` tiene un máximo de aplicación de 10.000 caracteres, no atribuido a Zoho.
+
 ## Arquitectura objetivo
 
 ```text
@@ -55,6 +57,8 @@ Se conserva el contrato actual para reducir cambios:
 ```
 
 Empresa, contacto, email y servicio son obligatorios. `details` es opcional o nulo. Normalizar espacios y email a minúsculas sin alterar aliases del email; validar tipo, formato, límites y rechazar claves inesperadas. Límites definitivos dependen de metadatos reales de Zoho. El presupuesto permanece en `details`: no se inventará moneda ni campo numérico.
+
+La validación del webhook aplica los máximos de contrato que ya estaban definidos en el backend (160/160/320/100) y un límite de aplicación de 10.000 caracteres para `details`. Este último limita el tamaño aceptado por LeadFlow; no afirma ser el máximo de Zoho `Description`.
 
 ### Mapeo Zoho pendiente de confirmación (TICKET-001)
 

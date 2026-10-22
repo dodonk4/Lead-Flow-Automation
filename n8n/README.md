@@ -4,6 +4,10 @@ The `feat/zoho-crm` Compose stack runs n8n `2.5.0` at `http://localhost:5678`, b
 
 Startup does not import or publish workflows. `lead-intake-to-slack.workflow.json` belongs to v1 and depends on the backend; do not activate it as a v2 workflow. Zoho/Slack configuration and a functional workflow will be handled by later tickets.
 
+`leadflow-form-validation.workflow.json` is an inactive TICKET-003 validation artifact. It accepts POST requests at `leadflow-form`, validates and normalizes the form contract, and returns the normalized fields without saving a lead. It has no Zoho/Slack integrations and must not be activated or presented as the final workflow.
+
+The form sends JSON text as `text/plain` so n8n can pass even malformed JSON to the workflow for a controlled HTTP 400 response; the workflow parses it safely before field validation. A direct caller sending malformed JSON as `application/json` gets n8n's parser-level HTTP 422 before the workflow runs. This transport does not make CORS an anti-abuse control.
+
 ## Configuration
 
 The configurable webhook URL compiled into Vite is `VITE_N8N_WEBHOOK_URL`. Its local example is `http://localhost:5678/webhook/leadflow-form`, with no credentials or tokens. Optionally configure it in the repository-root `.env`; rebuild the frontend to apply Vite changes:

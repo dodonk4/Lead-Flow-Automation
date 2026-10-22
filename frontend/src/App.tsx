@@ -101,7 +101,7 @@ function LeadFormPage() {
     try {
       const response = await fetch(webhookUrl, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "text/plain" },
         body: JSON.stringify(payload),
       });
       const body: unknown = await response.json().catch(() => null);

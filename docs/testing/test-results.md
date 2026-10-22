@@ -45,3 +45,25 @@ Plantilla por ejecución:
 | Whitespace | `git diff --check` | PASS |
 
 **Conclusión:** TICKET-002 DONE. El stack queda detenido con `docker compose down` (sin `-v`); el volumen v2 y el workflow inactivo de prueba se conservaron. La ejecución no configuró ni probó integraciones Zoho/Slack, que no forman parte de este ticket. El volumen v1 esperado no existía en Docker antes de estas pruebas; los datos/volúmenes v1 no se borraron ni se usaron.
+
+## TICKET-003 — Validación y normalización n8n (2026-10-21)
+
+Entorno: Docker Engine `29.8.2`, imagen n8n `2.5.0`; workflow importado en una instancia aislada temporal. El archivo versionado permaneció `active=false`; para ejecutar HTTP real se publicó solo la copia del contenedor de prueba, con el export montado como solo lectura y sin volúmenes de datos persistentes. El formulario envía JSON serializado con `Content-Type: text/plain` para que el parser sintáctico se ejecute dentro del workflow.
+
+| Comprobación | Entrada/pasos | Resultado observado | Estado / límite |
+|---|---|---|---|
+| Importación del export | `n8n import:workflow --input=...` con la imagen `n8nio/n8n:2.5.0` | CLI importó correctamente 1 workflow; se ejecutó la copia aislada por HTTP | PASS; el export versionado sigue inactivo |
+| Estructura/aislamiento | Inspección JSON de nodos, conexiones, CORS, credenciales y respuestas | 18 nodos; solo Webhook, IF, Set y Respond to Webhook; conexiones completas; sin credenciales, integraciones ni texto/estado `saved`; `active=false`; CORS configurado como `http://localhost:5173` | PASS |
+| Normalización y servicio desconocido | JSON sintético con espacios en los textos y email con mayúsculas, enviado como `text/plain`; `serviceRequested=Otro` | HTTP 200; campos recortados, email en minúsculas, `details` recortado; el servicio desconocido pasa a la futura validación TICKET-004; respuesta sin estado de persistencia | PASS |
+| Obligatorios | Para empresa, contacto, email y servicio: cada campo omitido, vacío y con solo espacios (12 solicitudes) | Las 12 respuestas fueron HTTP 400 con el campo correcto y mensaje estable | PASS |
+| Email, claves y tipos | Email inválido; email numérico; clave adicional | HTTP 400 con campo `email` o `body`, sin información interna | PASS |
+| Límites | Para empresa/contacto 160, email 320, servicio 100 y details 10.000: longitud exacta y máximo + 1 | Los cinco límites exactos devolvieron HTTP 200; cada valor + 1 devolvió HTTP 400 en su campo | PASS; longitudes tras trim |
+| Details opcional | `details` omitido, nulo, numérico | Omitido/nulo: HTTP 200 y `details: null`; número: HTTP 400 | PASS |
+| JSON/objeto | Array, escalar, null y JSON sintácticamente malformado, enviados como `text/plain` | Los cuatro casos devolvieron HTTP 400 con `field=body` y mensaje comprensible, sin stack/details internos | PASS |
+| CORS | POST sintético desde `http://localhost:5173` y `http://example.invalid` | El header `Access-Control-Allow-Origin` se mantuvo fijo en `http://localhost:5173`; ambos POST llegaron al endpoint y dieron HTTP 200 | PASS para header exacto; confirma que CORS no bloquea ni autentica llamadas directas |
+| Parser con otro content type | JSON malformado enviado como `application/json` | n8n respondió HTTP 422 `Failed to parse request body` antes de ejecutar el workflow; no se puede personalizar ese parser desde el export | Limitación documentada: el formulario usa `text/plain`; otros clientes requieren el mismo transporte si necesitan HTTP 400 controlado |
+| Build del formulario | `npm.cmd run build` desde `frontend/` | `tsc -b` y Vite build completaron; Vite `6.4.4` | PASS |
+
+**Evidencia de HTTP:** 31 casos sintéticos de validación pasaron: contrato normalizado, 12 variaciones de campos obligatorios, email/tipos, clave extra, diez pruebas de límites, details opcional y no objeto/JSON malformado. No se probaron Zoho/Slack ni se guardaron leads; están fuera de TICKET-003. El contenedor temporal fue detenido al terminar y no montó ni modificó el volumen Compose v2.
+
+**Conclusión:** TICKET-003 DONE para el transporte del formulario documentado (`text/plain` con cuerpo JSON). La limitación de n8n para JSON malformado con `application/json` queda explícita; CORS sigue siendo solo una política de navegador y la demo debe permanecer local.

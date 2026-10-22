@@ -1,0 +1,644 @@
+{
+  "id": "9ccf34dd-fde1-4a11-a3b6-7736328df836",
+  "name": "LeadFlow TICKET-003 form validation (inactive)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadflow-form",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://localhost:5173"
+        }
+      },
+      "id": "52ab23cd-f327-47d6-a861-8c87043216e3",
+      "name": "Receive lead form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        20,
+        400
+      ],
+      "webhookId": "d682a2ca-21fd-498e-a85e-df80b776fa01"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8066a71a-2c8f-4713-8934-4c1b81620ca9",
+              "name": "parsedBody",
+              "value": "={{ typeof $json.body === 'string' ? JSON.parse($json.body) : $json.body }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a0d3dc89-619c-4355-ac76-e74604bc25c8",
+      "name": "Parse validated JSON object",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1ce0e5b-4d92-4c6d-9710-e22667db6af1",
+              "leftValue": "={{ (() => { try { const body = typeof $json.body === 'string' ? JSON.parse($json.body) : $json.body; return typeof body === 'object' && body !== null && !Array.isArray(body); } catch (error) { return false; } })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "00277d26-00e6-444a-96aa-3e33f3dd4958",
+      "name": "Is a JSON object",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b619b5f9-c827-43ed-91a4-3d36e845b339",
+              "leftValue": "={{ Object.keys($json.parsedBody).every((key) => ['companyName', 'contactName', 'email', 'serviceRequested', 'details'].includes(key)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cc2736b8-8388-4093-aaec-e5bd7c4aaed4",
+      "name": "Only allow contract fields",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cfb7ed47-bf08-42bc-8cc3-6fecf0c605a2",
+              "leftValue": "={{ typeof $json.parsedBody.companyName === 'string' && $json.parsedBody.companyName.trim().length > 0 && $json.parsedBody.companyName.trim().length <= 160 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bf31e208-eb1b-4223-aef5-df19bbbf865b",
+      "name": "Validate companyName",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "13f1bf8a-f7ef-4a9c-9f9d-8443746bbf9b",
+              "leftValue": "={{ typeof $json.parsedBody.contactName === 'string' && $json.parsedBody.contactName.trim().length > 0 && $json.parsedBody.contactName.trim().length <= 160 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f7fa4175-e3e8-470c-b05a-d6aa6a3f39c8",
+      "name": "Validate contactName",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c334bdcc-22aa-4714-b6e5-a6dad4f799b7",
+              "leftValue": "={{ typeof $json.parsedBody.email === 'string' && $json.parsedBody.email.trim().length > 0 && $json.parsedBody.email.trim().length <= 320 && /^(?!\\.)(?!.*\\.\\.)([A-Z0-9_'+.-]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\\.)+[A-Z]{2,}$/i.test($json.parsedBody.email.trim()) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1db4fd4-8dbc-4eaf-a0d0-977ba49f9557",
+      "name": "Validate email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6fa9a005-8071-45ad-904c-b8aab5ae6042",
+              "leftValue": "={{ typeof $json.parsedBody.serviceRequested === 'string' && $json.parsedBody.serviceRequested.trim().length > 0 && $json.parsedBody.serviceRequested.trim().length <= 100 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6d3ec908-ddfe-4d8a-bf44-40f010ee9ddf",
+      "name": "Validate serviceRequested",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7ca224ff-222b-428d-87bb-6ce810a28dca",
+              "leftValue": "={{ $json.parsedBody.details === undefined || $json.parsedBody.details === null || (typeof $json.parsedBody.details === 'string' && $json.parsedBody.details.trim().length <= 10000) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4c6b700-87de-4ed9-9d63-1ec9cf4e155c",
+      "name": "Validate details",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0eb3cde-671e-49df-9506-a3d6a3bb9af8",
+              "name": "companyName",
+              "value": "={{ $json.parsedBody.companyName.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "01e20e99-d4bf-4fce-9c78-c8c2b3132ec6",
+              "name": "contactName",
+              "value": "={{ $json.parsedBody.contactName.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "c2a5dde0-7288-4f59-9b70-86a5c754afff",
+              "name": "email",
+              "value": "={{ $json.parsedBody.email.trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "369a1eb3-8351-4414-b063-22cd73746d85",
+              "name": "serviceRequested",
+              "value": "={{ $json.parsedBody.serviceRequested.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "32b6840d-659b-4539-aa57-2bd61cc2e6d7",
+              "name": "details",
+              "value": "={{ $json.parsedBody.details == null ? null : $json.parsedBody.details.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "6fb758bb-61e2-487d-bf03-518272d88f7d",
+      "name": "Emit normalized contract",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a957a905-dc7d-46d3-8beb-7c612461641a",
+      "name": "Respond with normalized contract",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2220,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'body', message: 'El cuerpo debe ser un objeto JSON.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "f9bfb617-51a8-4fcf-8a89-c9601f89b1ab",
+      "name": "Reject non-object body",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'body', message: 'El cuerpo contiene campos no permitidos.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "237da431-391b-457c-8fab-48ac7a2101d1",
+      "name": "Reject unexpected fields",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'companyName', message: 'companyName debe ser texto no vacío de hasta 160 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "0b8fc43e-4406-401c-8c5b-b56e6d27fe82",
+      "name": "Reject invalid companyName",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'contactName', message: 'contactName debe ser texto no vacío de hasta 160 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "22fa2d97-7008-4f71-af3e-c4e5d2771399",
+      "name": "Reject invalid contactName",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'email', message: 'email debe ser una dirección válida de hasta 320 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "d912ad18-53f9-4832-bfdb-75b0b740e4cc",
+      "name": "Reject invalid email",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'serviceRequested', message: 'serviceRequested debe ser texto no vacío de hasta 100 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "f3ef6885-b865-40c8-9ec7-80ee0af88a54",
+      "name": "Reject invalid serviceRequested",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1780,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'details', message: 'details debe ser texto, nulo u omitirse; el máximo es 10000 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "bc594787-9f87-457e-b3f7-ae469e72f1a1",
+      "name": "Reject invalid details",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        -100
+      ]
+    }
+  ],
+  "connections": {
+    "Receive lead form": {
+      "main": [
+        [
+          {
+            "node": "Is a JSON object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is a JSON object": {
+      "main": [
+        [
+          {
+            "node": "Parse validated JSON object",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject non-object body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse validated JSON object": {
+      "main": [
+        [
+          {
+            "node": "Only allow contract fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only allow contract fields": {
+      "main": [
+        [
+          {
+            "node": "Validate companyName",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject unexpected fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate companyName": {
+      "main": [
+        [
+          {
+            "node": "Validate contactName",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid companyName",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate contactName": {
+      "main": [
+        [
+          {
+            "node": "Validate email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid contactName",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate email": {
+      "main": [
+        [
+          {
+            "node": "Validate serviceRequested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate serviceRequested": {
+      "main": [
+        [
+          {
+            "node": "Validate details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid serviceRequested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate details": {
+      "main": [
+        [
+          {
+            "node": "Emit normalized contract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit normalized contract": {
+      "main": [
+        [
+          {
+            "node": "Respond with normalized contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
