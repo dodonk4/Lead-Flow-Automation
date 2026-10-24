@@ -1,0 +1,1273 @@
+{
+  "id": "13733dfa-0f02-5010-b9dc-417428d3cbcd",
+  "name": "LeadFlow Zoho upsert by email (inactive)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadflow-form",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "http://localhost:5173"
+        }
+      },
+      "id": "70bf4aed-e3b0-5aeb-852d-a9a390e65143",
+      "name": "Receive lead form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        20,
+        400
+      ],
+      "webhookId": "461774b7-4877-5f6e-a242-d53f0abc33ca"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40aad054-3b29-5af2-81e0-6a2db4728073",
+              "name": "parsedBody",
+              "value": "={{ typeof $json.body === 'string' ? JSON.parse($json.body) : $json.body }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "538c4c7b-2268-57e8-98bc-593cd26cc28a",
+      "name": "Parse validated JSON object",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1ce0e5b-4d92-4c6d-9710-e22667db6af1",
+              "leftValue": "={{ (() => { try { const body = typeof $json.body === 'string' ? JSON.parse($json.body) : $json.body; return typeof body === 'object' && body !== null && !Array.isArray(body); } catch (error) { return false; } })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a2fd80ca-5a56-5555-9364-2157155b0aee",
+      "name": "Is a JSON object",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b619b5f9-c827-43ed-91a4-3d36e845b339",
+              "leftValue": "={{ Object.keys($json.parsedBody).every((key) => ['companyName', 'contactName', 'email', 'serviceRequested', 'details'].includes(key)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0c43c591-be2a-5f30-92e7-b58d63b76861",
+      "name": "Only allow contract fields",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cfb7ed47-bf08-42bc-8cc3-6fecf0c605a2",
+              "leftValue": "={{ typeof $json.parsedBody.companyName === 'string' && $json.parsedBody.companyName.trim().length > 0 && $json.parsedBody.companyName.trim().length <= 160 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "65770e67-482a-5625-b134-b5d2d40660f5",
+      "name": "Validate companyName",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "13f1bf8a-f7ef-4a9c-9f9d-8443746bbf9b",
+              "leftValue": "={{ typeof $json.parsedBody.contactName === 'string' && $json.parsedBody.contactName.trim().length > 0 && $json.parsedBody.contactName.trim().length <= 160 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "75756daa-fe0d-53ef-9916-9d58e830a08e",
+      "name": "Validate contactName",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c334bdcc-22aa-4714-b6e5-a6dad4f799b7",
+              "leftValue": "={{ typeof $json.parsedBody.email === 'string' && $json.parsedBody.email.trim().length > 0 && $json.parsedBody.email.trim().length <= 320 && /^(?!\\.)(?!.*\\.\\.)([A-Z0-9_'+.-]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9-]*\\.)+[A-Z]{2,}$/i.test($json.parsedBody.email.trim()) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6ccfb5c2-56ad-5400-9071-f53fafd6ffb6",
+      "name": "Validate email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6fa9a005-8071-45ad-904c-b8aab5ae6042",
+              "leftValue": "={{ typeof $json.parsedBody.serviceRequested === 'string' && $json.parsedBody.serviceRequested.trim().length > 0 && $json.parsedBody.serviceRequested.trim().length <= 100 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8a682aa5-08e2-59ea-af18-6916aae3b954",
+      "name": "Validate serviceRequested",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7ca224ff-222b-428d-87bb-6ce810a28dca",
+              "leftValue": "={{ $json.parsedBody.details === undefined || $json.parsedBody.details === null || (typeof $json.parsedBody.details === 'string' && $json.parsedBody.details.trim().length <= 10000) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fb6a4793-b2b2-5c66-84ad-2e95cfb51db6",
+      "name": "Validate details",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c66ff932-60d8-514a-84da-b69bd6ea4d2a",
+              "name": "companyName",
+              "value": "={{ $json.parsedBody.companyName.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "aa71dcc8-d946-595e-b1c8-b13d0d303cab",
+              "name": "contactName",
+              "value": "={{ $json.parsedBody.contactName.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "81d4ba0d-27de-504c-b96e-80fcf83975d9",
+              "name": "email",
+              "value": "={{ $json.parsedBody.email.trim().toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "9b3e7682-e112-5f38-9f0a-002ddad5ec89",
+              "name": "serviceRequested",
+              "value": "={{ $json.parsedBody.serviceRequested.trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "dd7132bd-e7ad-5d98-98bb-ad8a283a77c6",
+              "name": "details",
+              "value": "={{ $json.parsedBody.details == null ? null : $json.parsedBody.details.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "c2c3b2a1-b529-5812-ac23-a69c3121bc69",
+      "name": "Emit normalized contract",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'body', message: 'El cuerpo debe ser un objeto JSON.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "eb6883fc-cef3-593e-90dc-43f209b93463",
+      "name": "Reject non-object body",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'body', message: 'El cuerpo contiene campos no permitidos.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "55fbcc6e-1cef-5a95-8d45-4da0be97d619",
+      "name": "Reject unexpected fields",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'companyName', message: 'companyName debe ser texto no vacío de hasta 160 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c12db263-8d73-5c65-ab4e-e21005f77897",
+      "name": "Reject invalid companyName",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'contactName', message: 'contactName debe ser texto no vacío de hasta 160 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "241d60ee-e323-5089-af03-dc8d4e39beea",
+      "name": "Reject invalid contactName",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'email', message: 'email debe ser una dirección válida de hasta 320 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "583d9d64-bb30-5eba-a838-834f877ca9f8",
+      "name": "Reject invalid email",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1560,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'serviceRequested', message: 'serviceRequested debe ser texto no vacío de hasta 100 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "da9e6a60-8b3f-521d-8048-8ac64a229532",
+      "name": "Reject invalid serviceRequested",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1780,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'validation_error', field: 'details', message: 'details debe ser texto, nulo u omitirse; el máximo es 10000 caracteres.' } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "daee8846-dd7f-594e-838e-3b2b52530c70",
+      "name": "Reject invalid details",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ef1453f5-ffc7-5d40-b613-6f25208f646c",
+              "leftValue": "={{ ['RRHH', 'Legal', 'Automatizaci\u00f3n'].includes($json.serviceRequested) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2de7839a-d476-5a04-b672-069ddd3a2309",
+      "name": "Has an assignment rule",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2220,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8f58e71e-1a98-504c-b91f-6b15ff9f331a",
+              "name": "serviceRequested",
+              "value": "={{ $json.serviceRequested }}",
+              "type": "string"
+            },
+            {
+              "id": "277d48e4-4350-5fef-80d1-ab4dd696321e",
+              "name": "ownerId",
+              "value": "={{ $json.serviceRequested === 'RRHH' ? '6300195000001281004' : $json.serviceRequested === 'Legal' ? '6300195000001281013' : $json.serviceRequested === 'Automatizaci\u00f3n' ? '6300195000000468001' : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f5482156-3123-5868-85ea-dcbce6d6a7d8",
+              "name": "zohoApiBaseUrl",
+              "value": "https://www.zohoapis.com/crm/v8",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "8a0ac4ee-794e-5906-8ec5-3249938fd9b3",
+      "name": "Resolve Zoho owner",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2440,
+        -400
+      ],
+      "notesInFlow": true,
+      "notes": "Mapping de Owner con los IDs reales verificados por TICKET-004."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.zohoApiBaseUrl.replace(/\\/+$/, '') + '/users?type=ActiveUsers' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "4d178acd-8858-5346-b78c-74f83ed19941",
+      "name": "Verify owner in active Zoho users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        -400
+      ],
+      "onError": "continueErrorOutput",
+      "notesInFlow": true,
+      "notes": "Selecciona la credencial OAuth Zoho en n8n. Un error de consulta detiene el flujo antes de escribir."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f2103084-26a4-59ef-9e09-f3869f1ff1a5",
+              "leftValue": "={{ Array.isArray($json.users) && $json.users.some((user) => String(user.id) === String($('Resolve Zoho owner').first().json.ownerId)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6dd44883-9101-547b-a692-6aab346827e9",
+      "name": "Owner is an active Zoho user",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2880,
+        -400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2102a34-b838-580e-995c-2807f1550a98",
+              "name": "requestBody",
+              "value": "={{ { data: [{ Company: $('Emit normalized contract').first().json.companyName, Last_Name: $('Emit normalized contract').first().json.contactName, Email: $('Emit normalized contract').first().json.email, Rating: $('Emit normalized contract').first().json.serviceRequested, Owner: { id: String($('Resolve Zoho owner').first().json.ownerId) }, ...($('Emit normalized contract').first().json.details && $('Emit normalized contract').first().json.details.trim() ? { Description: $('Emit normalized contract').first().json.details.trim() } : {}) }], duplicate_check_fields: ['Email'] } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "beb80dc2-4fb2-5d30-b6fc-c4115d5256f8",
+      "name": "Prepare Zoho Lead upsert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3100,
+        -560
+      ],
+      "notesInFlow": true,
+      "notes": "In the isolated test Zoho organization, Rating is being repurposed as the service picklist with RRHH, Legal and Automatización. Sends Company, Last_Name, Email, Rating, Owner.id, and Description only when details is non-empty. Omitting Description preserves the existing value."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Resolve Zoho owner').first().json.zohoApiBaseUrl.replace(/\\/+$/, '') + '/Leads/upsert' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "b995f81b-d9d1-5847-9409-f5b7c7360e6c",
+      "name": "Upsert Lead by Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3320,
+        -560
+      ],
+      "onError": "continueErrorOutput",
+      "notesInFlow": true,
+      "notes": "Zoho API v8 upsert with duplicate_check_fields=[Email]. Check code, status, action and ID per record. Never retry this POST automatically."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "17a59226-a3f0-5ff8-8363-b0bce15e7236",
+              "leftValue": "={{ $json.statusCode >= 200 && $json.statusCode < 300 && $json.body && Array.isArray($json.body.data) && $json.body.data.length === 1 && $json.body.data[0].code === 'SUCCESS' && $json.body.data[0].status === 'success' && ['insert', 'update'].includes($json.body.data[0].action) && $json.body.data[0].details && typeof $json.body.data[0].details.id === 'string' && $json.body.data[0].details.id.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ed832548-87cd-5b91-b929-8727c29fac89",
+      "name": "Zoho upsert returned a verified record",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3540,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ff561508-a6d9-5367-8dc7-906145db7b2e",
+              "leftValue": "={{ $json.body.data[0].action === 'insert' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "231b7d6a-d861-5f2c-a20b-944dca1084f0",
+      "name": "Zoho action is insert",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3760,
+        -660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'saved', operation: 'created' }, data: { id: String($json.body.data[0].details.id) }, message: 'Lead creado en Zoho CRM.' } }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "ad49538b-46ee-5f98-86a7-b2c70b0b6597",
+      "name": "Return created Lead",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3980,
+        -740
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'saved', operation: 'updated' }, data: { id: String($json.body.data[0].details.id) }, message: 'Lead actualizado en Zoho CRM.' } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "f1122326-05d6-5a78-bf45-1d1791b43d61",
+      "name": "Return updated Lead",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3980,
+        -580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a8f98763-1069-54ef-9251-759f378dbacf",
+              "leftValue": "={{ !!($json.body && Array.isArray($json.body.data) && $json.body.data[0] && $json.body.data[0].code === 'DUPLICATE_DATA') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "20c7eea2-796c-576e-9a12-b1e75c2b8302",
+      "name": "Zoho reported duplicate ambiguity",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3760,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'unknown' }, error: 'zoho_duplicate_ambiguous', message: 'Zoho could not identify a unique record. Reconcile Leads by email before retrying.' } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "id": "2fc2b305-f3a5-5459-b82e-46f16764a498",
+      "name": "Escalate ambiguous duplicate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3980,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "66040705-db6d-516a-8db5-532817aa3a79",
+              "leftValue": "={{ ($json.statusCode >= 400 && $json.statusCode < 500) || !!($json.body && Array.isArray($json.body.data) && $json.body.data[0] && $json.body.data[0].status === 'error') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "507b09e2-b120-5867-8738-1150198b2036",
+      "name": "Zoho explicitly rejected the record",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3980,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'not_saved' }, error: 'zoho_rejected', message: 'Zoho rejected the record. Review configuration and data before retrying.' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "800b6cb5-03e1-5802-8558-ebbd8fc55bd0",
+      "name": "Return confirmed Zoho rejection",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4200,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'unknown' }, error: 'zoho_result_unknown', message: 'No se pudo confirmar el resultado en Zoho. Reconcilia por email antes de reintentar.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "7c22886b-12ce-50a3-9690-4bedcba5afdc",
+      "name": "Return unknown Zoho result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        4200,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { persistence: { status: 'unknown' }, error: 'zoho_result_unknown', message: 'The connection to Zoho ended without confirming the result. Reconcile by email before retrying.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "f7e43b5f-ce6b-5832-9d74-e95233561c9f",
+      "name": "Return unknown Zoho transport result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'owner_unavailable', message: 'El propietario asignado no figura entre los usuarios activos de Zoho.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "6212623f-5ef5-5539-ae1d-666852be2718",
+      "name": "Reject unavailable owner",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3100,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'owner_lookup_failed', message: 'Zoho owner could not be verified; the lead was not saved.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "7cc8f386-2293-5eb8-a991-e6fc50d0bb77",
+      "name": "Reject failed owner lookup",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'service_unassigned', field: 'serviceRequested', message: 'No assignment rule exists for the requested service.' } }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "2fc2983a-7931-5ee7-af10-93dbd9f316dd",
+      "name": "Reject service without rule",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2440,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Receive lead form": {
+      "main": [
+        [
+          {
+            "node": "Is a JSON object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is a JSON object": {
+      "main": [
+        [
+          {
+            "node": "Parse validated JSON object",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject non-object body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse validated JSON object": {
+      "main": [
+        [
+          {
+            "node": "Only allow contract fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only allow contract fields": {
+      "main": [
+        [
+          {
+            "node": "Validate companyName",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject unexpected fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate companyName": {
+      "main": [
+        [
+          {
+            "node": "Validate contactName",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid companyName",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate contactName": {
+      "main": [
+        [
+          {
+            "node": "Validate email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid contactName",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate email": {
+      "main": [
+        [
+          {
+            "node": "Validate serviceRequested",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate serviceRequested": {
+      "main": [
+        [
+          {
+            "node": "Validate details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid serviceRequested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate details": {
+      "main": [
+        [
+          {
+            "node": "Emit normalized contract",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject invalid details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emit normalized contract": {
+      "main": [
+        [
+          {
+            "node": "Has an assignment rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has an assignment rule": {
+      "main": [
+        [
+          {
+            "node": "Resolve Zoho owner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject service without rule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Zoho owner": {
+      "main": [
+        [
+          {
+            "node": "Verify owner in active Zoho users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify owner in active Zoho users": {
+      "main": [
+        [
+          {
+            "node": "Owner is an active Zoho user",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject failed owner lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner is an active Zoho user": {
+      "main": [
+        [
+          {
+            "node": "Prepare Zoho Lead upsert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject unavailable owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Zoho Lead upsert": {
+      "main": [
+        [
+          {
+            "node": "Upsert Lead by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Lead by Email": {
+      "main": [
+        [
+          {
+            "node": "Zoho upsert returned a verified record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return unknown Zoho transport result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho upsert returned a verified record": {
+      "main": [
+        [
+          {
+            "node": "Zoho action is insert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zoho reported duplicate ambiguity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho action is insert": {
+      "main": [
+        [
+          {
+            "node": "Return created Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return updated Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho reported duplicate ambiguity": {
+      "main": [
+        [
+          {
+            "node": "Escalate ambiguous duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zoho explicitly rejected the record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho explicitly rejected the record": {
+      "main": [
+        [
+          {
+            "node": "Return confirmed Zoho rejection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return unknown Zoho result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [],
+  "versionId": "2ee603d3-fd66-5649-bd4a-ea3156fa13b6"
+}
