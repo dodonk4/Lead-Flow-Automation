@@ -6,6 +6,10 @@ Startup does not import or publish workflows. `lead-intake-to-slack.workflow.jso
 
 `leadflow-form-validation.workflow.json` is an inactive TICKET-003 validation artifact. It accepts POST requests at `leadflow-form`, validates and normalizes the form contract, and returns the normalized fields without saving a lead. It has no Zoho/Slack integrations and must not be activated or presented as the final workflow.
 
+`leadflow-zoho-assignment.workflow.json` is the inactive TICKET-004 artifact. It accepts a normalized service at `leadflow-assignment-check`, applies the RRHH/Legal/Automatización mapping in n8n, and queries `users?type=ActiveUsers` before returning an Owner ID. An unmapped service returns HTTP 422; a lookup failure or Owner missing from the active-user response returns an explicit error. It does not save leads or send Slack. Do not connect this check to the frontend or expose it publicly.
+
+To test it, import the export without activating it and select the Zoho OAuth credential in `Verify owner in active Zoho users`. The versioned API base is `https://www.zohoapis.com/crm/v8`, supplied by the account owner. The Owner IDs were provided and the user confirmed they are active/assignable; all three mappings were subsequently verified with a real OAuth lookup. Do not share the complete user list, tokens, or sensitive execution output.
+
 The form sends JSON text as `text/plain` so n8n can pass even malformed JSON to the workflow for a controlled HTTP 400 response; the workflow parses it safely before field validation. A direct caller sending malformed JSON as `application/json` gets n8n's parser-level HTTP 422 before the workflow runs. This transport does not make CORS an anti-abuse control.
 
 ## Configuration

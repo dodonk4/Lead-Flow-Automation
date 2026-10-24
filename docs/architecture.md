@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-Este es el diseño objetivo de `feat/zoho-crm`, no una afirmación de que ya esté implementado. Análisis del repositorio realizado el 2026-10-20. TICKET-001 se cerró por confirmación del usuario; la metadata y el mapping detallados no se conservaron, por lo que no se consideran reproducibles. La integración Zoho/Slack todavía no está configurada en el Compose.
+Este es el diseño objetivo de `feat/zoho-crm`, no una afirmación de que ya esté implementado. Análisis del repositorio realizado el 2026-10-20. TICKET-001 se cerró por confirmación del usuario; su metadata y mapping detallados no se conservaron entonces. El usuario proporcionó más tarde los tres IDs de Owner para TICKET-004; aparecen en el mapping siguiente y todavía requieren verificación en la cuenta Zoho real. La integración Zoho/Slack todavía no está configurada en el Compose.
 
 ## Arquitectura actual observada
 
@@ -60,16 +60,24 @@ Empresa, contacto, email y servicio son obligatorios. `details` es opcional o nu
 
 La validación del webhook aplica los máximos de contrato que ya estaban definidos en el backend (160/160/320/100) y un límite de aplicación de 10.000 caracteres para `details`. Este último limita el tamaño aceptado por LeadFlow; no afirma ser el máximo de Zoho `Description`.
 
-### Mapeo Zoho pendiente de confirmación (TICKET-001)
+### Mapeo de propietarios Zoho (TICKET-004)
 
-| Entrada | Mapeo previsto |
+| Entrada | Owner.id |
+|---|---|
+| `RRHH` | `6300195000001281004` |
+| `Legal` | `6300195000001281013` |
+| `Automatización` | `6300195000000468001` |
+
+Los IDs fueron proporcionados por el usuario el 2026-10-23, quien también confirmó manualmente que son activos y asignables. Las pruebas con OAuth real consultaron `users?type=ActiveUsers` y confirmaron los tres IDs correspondientes. El API base informado para esta cuenta es `https://www.zohoapis.com/crm/v8`. El export inactivo `n8n/leadflow-zoho-assignment.workflow.json` recorta el valor del servicio, rechaza valores sin regla con HTTP 422 y consulta `users?type=ActiveUsers` con OAuth antes de devolver un Owner. Las pruebas negativas de usuario no disponible/permisos siguen pendientes.
+
+| Entrada de lead | Mapeo previsto |
 |---|---|
 | `companyName` | `Company` |
 | `contactName` | `Last_Name`, usando nombre completo sin inferir apellidos |
 | `email` | `Email`, coincidencia de upsert |
 | `serviceRequested` | Campo de servicio; API name, tipo y disponibilidad por verificar |
 | `details` | `Description`, con límite real por verificar |
-| regla asignada | `Owner.id` de usuario activo y asignable |
+| regla asignada | `Owner.id` según el mapping anterior |
 
 No se conocen el API name del campo servicio, layout, campos obligatorios, edición, región, permisos ni usuarios de la cuenta. Confirmar todo mediante metadatos y pruebas con una cuenta de prueba; no inventar valores. Si el módulo requiere campos adicionales, actualizar el contrato y la documentación antes de implementar.
 

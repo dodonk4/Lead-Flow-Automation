@@ -1,0 +1,252 @@
+{
+  "id": "a87fb5b1-66e7-477f-8f79-235987f68a10",
+  "name": "LeadFlow Zoho owner assignment check (inactive)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "leadflow-assignment-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a11",
+      "name": "Receive normalized lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [240, 360],
+      "webhookId": "a87fb5b1-66e7-477f-8f79-235987f68a12"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a13",
+              "name": "serviceRequested",
+              "value": "={{ typeof $json.body === 'object' && $json.body !== null && typeof $json.body.serviceRequested === 'string' ? $json.body.serviceRequested.trim() : '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a14",
+      "name": "Normalize assignment service",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 360]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a15",
+              "leftValue": "={{ ['RRHH', 'Legal', 'Automatización'].includes($json.serviceRequested) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a16",
+      "name": "Has an assignment rule",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 360]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a17",
+              "name": "serviceRequested",
+              "value": "={{ $json.serviceRequested }}",
+              "type": "string"
+            },
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a18",
+              "name": "ownerId",
+              "value": "={{ $json.serviceRequested === 'RRHH' ? '6300195000001281004' : $json.serviceRequested === 'Legal' ? '6300195000001281013' : '6300195000000468001' }}",
+              "type": "string"
+            },
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a19",
+              "name": "zohoApiBaseUrl",
+              "value": "https://www.zohoapis.com/crm/v8",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a20",
+      "name": "Resolve Zoho owner",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [920, 240],
+      "notesInFlow": true,
+      "notes": "Owner IDs were supplied by the project owner. The following read-only Zoho ActiveUsers check must confirm each mapped ID before it can be returned; this workflow never persists leads."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.zohoApiBaseUrl.replace(/\\/+$/, '') + '/users?type=ActiveUsers' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "zohoOAuth2Api",
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a21",
+      "name": "Verify owner in active Zoho users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 240],
+      "onError": "continueErrorOutput",
+      "notesInFlow": true,
+      "notes": "The API base URL was supplied by the project owner. Select the Zoho OAuth credential in this node after import. A lookup error follows the explicit error branch; it never falls back to an implicit Owner."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a87fb5b1-66e7-477f-8f79-235987f68a22",
+              "leftValue": "={{ Array.isArray($json.users) && $json.users.some((user) => String(user.id) === String($('Resolve Zoho owner').first().json.ownerId)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a23",
+      "name": "Owner is an active Zoho user",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { assignment: { status: 'resolved', serviceRequested: $('Resolve Zoho owner').first().json.serviceRequested, ownerId: String($('Resolve Zoho owner').first().json.ownerId) } } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a24",
+      "name": "Return verified owner",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1640, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'owner_unavailable', message: 'El propietario asignado no figura entre los usuarios activos de Zoho.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a25",
+      "name": "Reject unavailable owner",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1640, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'service_unassigned', field: 'serviceRequested', message: 'No hay una regla de asignación para el servicio solicitado.' } }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a26",
+      "name": "Reject service without rule",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [920, 480]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { error: 'owner_lookup_failed', message: 'No se pudo verificar el propietario con Zoho; no se debe guardar el lead ni enviar notificaciones.' } }}",
+        "options": {
+          "responseCode": 503
+        }
+      },
+      "id": "a87fb5b1-66e7-477f-8f79-235987f68a27",
+      "name": "Reject failed owner lookup",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [1400, 480]
+    }
+  ],
+  "connections": {
+    "Receive normalized lead": {
+      "main": [[{ "node": "Normalize assignment service", "type": "main", "index": 0 }]]
+    },
+    "Normalize assignment service": {
+      "main": [[{ "node": "Has an assignment rule", "type": "main", "index": 0 }]]
+    },
+    "Has an assignment rule": {
+      "main": [
+        [{ "node": "Resolve Zoho owner", "type": "main", "index": 0 }],
+        [{ "node": "Reject service without rule", "type": "main", "index": 0 }]
+      ]
+    },
+    "Resolve Zoho owner": {
+      "main": [[{ "node": "Verify owner in active Zoho users", "type": "main", "index": 0 }]]
+    },
+    "Verify owner in active Zoho users": {
+      "main": [
+        [{ "node": "Owner is an active Zoho user", "type": "main", "index": 0 }],
+        [{ "node": "Reject failed owner lookup", "type": "main", "index": 0 }]
+      ]
+    },
+    "Owner is an active Zoho user": {
+      "main": [
+        [{ "node": "Return verified owner", "type": "main", "index": 0 }],
+        [{ "node": "Reject unavailable owner", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a87fb5b1-66e7-477f-8f79-235987f68a28",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

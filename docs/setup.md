@@ -45,6 +45,8 @@ Las credenciales de Zoho y Slack se crearán manualmente en el gestor de credenc
 
 `n8n/leadflow-form-validation.workflow.json` es un export temporal e inactivo de TICKET-003 para verificar el contrato del webhook. No lo actives ni lo presentes como flujo final; no guarda leads ni incluye Zoho/Slack. Compose tampoco lo importa automáticamente. El formulario envía el texto JSON con `Content-Type: text/plain` para que n8n pueda devolver un 400 controlado incluso si el JSON está malformado; un cliente directo que use `application/json` recibirá el 422 del parser de n8n ante sintaxis malformada. CORS no autentica ni limita estas solicitudes.
 
+`n8n/leadflow-zoho-assignment.workflow.json` es un export inactivo de TICKET-004 para comprobar la asignación antes del guardado. Su API base `https://www.zohoapis.com/crm/v8` fue proporcionada por el usuario. Selecciona la credencial OAuth Zoho guardada en `Verify owner in active Zoho users`; no basta con que la credencial exista, hay que enlazarla al nodo. El usuario confirmó que los IDs del mapping son activos/asignables; la consulta real con OAuth está registrada en los resultados de pruebas. Un servicio sin regla responde 422; un Owner no encontrado o un error de consulta responde con error y no pasa a guardar ni notificar. Este webhook de comprobación no debe configurarse en el frontend ni exponerse públicamente; no guarda leads y no envía Slack. El export permanece inactivo.
+
 ## Volúmenes y recuperación
 
 - Usa `docker compose down` para detener la demo; conserva el volumen.
