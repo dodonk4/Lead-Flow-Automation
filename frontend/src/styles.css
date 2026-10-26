@@ -103,26 +103,6 @@ select:focus-visible {
   letter-spacing: .02em;
 }
 
-.topbar-nav {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-left: auto;
-  padding: 0 25px;
-}
-
-.topbar-nav a {
-  color: #77837b;
-  font-size: 11px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.topbar-nav a:hover,
-.topbar-nav a[aria-current="page"] {
-  color: var(--green);
-}
-
 .live-dot {
   width: 7px;
   height: 7px;
@@ -552,58 +532,6 @@ h1 span {
   color: #718078;
   font-size: 10px;
   line-height: 1.6;
-}
-
-.status-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.result-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 13px;
-  padding: 10px 0;
-  border-top: 1px solid #e1ebe1;
-  border-bottom: 1px solid #e1ebe1;
-}
-
-.result-details span {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.result-details small {
-  color: #94a198;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: .1em;
-}
-
-.result-details b {
-  overflow-wrap: anywhere;
-  color: #415248;
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.text-button {
-  margin-top: 11px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--green);
-  cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.text-button:hover {
-  color: var(--green-dark);
-  text-decoration: underline;
 }
 
 .page-footer {

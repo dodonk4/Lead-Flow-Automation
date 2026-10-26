@@ -1,5 +1,4 @@
-import { useState, type FormEvent } from "react";
-import CrmPage from "./CrmPage";
+import { useRef, useState, type FormEvent } from "react";
 
 type FormValues = {
   name: string;
@@ -11,20 +10,16 @@ type FormValues = {
 
 type LeadResult = {
   id: string;
-  companyName: string;
-  contactName: string;
-  email: string;
-  serviceRequested: string;
-  details: string | null;
-  assignedAdvisorId: string | null;
-  assignedAdvisor?: { name: string } | null;
 };
 
 type WorkflowSuccess = {
+  persistence: {
+    status: "saved";
+    operation: "created" | "updated";
+  };
   data: LeadResult;
   notification: {
-    status: "sent" | "skipped";
-    reason?: string;
+    status: "sent" | "failed" | "unconfirmed";
   };
 };
 
@@ -32,8 +27,7 @@ type SubmissionState =
   | { status: "idle" }
   | { status: "submitting" }
   | { status: "success"; result: WorkflowSuccess }
-  | { status: "slack-failed"; leadId: string }
-  | { status: "unknown"; message: string };
+  | { status: "error"; message: string };
 
 const initialValues: FormValues = {
   name: "",
@@ -43,24 +37,65 @@ const initialValues: FormValues = {
   budget: "",
 };
 
-function isWorkflowSuccess(value: unknown): value is WorkflowSuccess {
-  if (!value || typeof value !== "object") return false;
-  const response = value as Partial<WorkflowSuccess>;
-  const lead = response.data;
+const webhookTimeoutMs = 30_000;
 
-  return Boolean(
-    lead &&
-      typeof lead.id === "string" &&
-      typeof lead.companyName === "string" &&
-      typeof lead.contactName === "string" &&
-      typeof lead.email === "string" &&
-      typeof lead.serviceRequested === "string" &&
-      (lead.assignedAdvisorId === null ||
-        typeof lead.assignedAdvisorId === "string") &&
-      response.notification &&
-      (response.notification.status === "sent" ||
-        response.notification.status === "skipped"),
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isWorkflowSuccess(value: unknown): value is WorkflowSuccess {
+  if (!isRecord(value) || !isRecord(value.persistence) || !isRecord(value.data)) {
+    return false;
+  }
+
+  return (
+    value.persistence.status === "saved" &&
+    (value.persistence.operation === "created" ||
+      value.persistence.operation === "updated") &&
+    typeof value.data.id === "string" &&
+    value.data.id.length > 0 &&
+    isRecord(value.notification) &&
+    (value.notification.status === "sent" ||
+      value.notification.status === "failed" ||
+      value.notification.status === "unconfirmed")
   );
+}
+
+function getFailureMessage(status: number, body: unknown): string {
+  if (isRecord(body)) {
+    if (body.error === "validation_error") {
+      return "Revisa los datos del formulario y vuelve a intentarlo.";
+    }
+    if (body.error === "service_unassigned") {
+      return "Este servicio todavía no tiene una regla de asignación. Elige otro servicio o contacta al equipo.";
+    }
+    if (
+      body.error === "owner_lookup_failed" ||
+      body.error === "owner_unavailable"
+    ) {
+      return "La asignación no está disponible en este momento. El lead no se guardó; inténtalo más tarde.";
+    }
+    if (
+      isRecord(body.persistence) &&
+      body.persistence.status === "not_saved"
+    ) {
+      return "Zoho confirmó que el lead no se guardó. Revisa los datos o la configuración antes de volver a intentarlo.";
+    }
+  }
+
+  if (
+    isRecord(body) &&
+    isRecord(body.persistence) &&
+    body.persistence.status === "unknown"
+  ) {
+    return "No pudimos confirmar si el lead se guardó. Verifica el resultado antes de volver a enviarlo para evitar duplicados.";
+  }
+
+  if (status === 503 || status === 409) {
+    return "No pudimos confirmar si el lead se guardó. Verifica el resultado antes de volver a enviarlo para evitar duplicados.";
+  }
+
+  return "No se pudo completar el envío. Revisa el estado del lead antes de volver a intentarlo.";
 }
 
 function LeadFormPage() {
@@ -68,6 +103,7 @@ function LeadFormPage() {
   const [submission, setSubmission] = useState<SubmissionState>({
     status: "idle",
   });
+  const submissionInProgress = useRef(false);
 
   const isSubmitting = submission.status === "submitting";
 
@@ -77,17 +113,45 @@ function LeadFormPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submissionInProgress.current) return;
+
     const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL?.trim();
 
     if (!webhookUrl) {
       setSubmission({
-        status: "unknown",
+        status: "error",
         message:
-          "El formulario todavía no está conectado. Configura la URL del webhook de LeadFlow.",
+          "El formulario todavía no está conectado. Configura la URL del webhook de LeadFlow para poder enviar la consulta.",
       });
       return;
     }
 
+    let parsedWebhookUrl: URL;
+    try {
+      parsedWebhookUrl = new URL(webhookUrl);
+    } catch {
+      setSubmission({
+        status: "error",
+        message:
+          "La configuración del webhook no es válida. Contacta al equipo para que revise la URL.",
+      });
+      return;
+    }
+
+    if (
+      !["http:", "https:"].includes(parsedWebhookUrl.protocol) ||
+      parsedWebhookUrl.username ||
+      parsedWebhookUrl.password
+    ) {
+      setSubmission({
+        status: "error",
+        message:
+          "La configuración del webhook no es válida. Contacta al equipo para que revise la URL.",
+      });
+      return;
+    }
+
+    submissionInProgress.current = true;
     setSubmission({ status: "submitting" });
 
     const payload = {
@@ -99,54 +163,68 @@ function LeadFormPage() {
     };
 
     try {
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "content-type": "text/plain" },
-        body: JSON.stringify(payload),
-      });
-      const body: unknown = await response.json().catch(() => null);
-
-      if (
-        response.status === 502 &&
-        body &&
-        typeof body === "object" &&
-        "error" in body &&
-        body.error === "slack_delivery_unconfirmed" &&
-        "leadId" in body &&
-        typeof body.leadId === "string"
-      ) {
-        setSubmission({ status: "slack-failed", leadId: body.leadId });
+      let response: Response;
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(
+        () => controller.abort(),
+        webhookTimeoutMs,
+      );
+      try {
+        response = await fetch(parsedWebhookUrl, {
+          method: "POST",
+          headers: { "content-type": "text/plain" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } catch {
+        setSubmission({
+          status: "error",
+          message:
+            "La solicitud tardó demasiado o se interrumpió. El resultado puede no estar confirmado; verifica si el lead fue recibido antes de volver a enviarlo.",
+        });
         return;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+
+      let body: unknown = null;
+      try {
+        body = await response.json();
+      } catch {
+        // A malformed response cannot confirm whether Zoho saved the lead.
       }
 
       if (!response.ok) {
         setSubmission({
-          status: "unknown",
-          message:
-            response.status === 502
-              ? "No pudimos confirmar el resultado del procesamiento. Revisa el estado antes de volver a enviar para evitar duplicar el lead."
-              : "No se pudo completar el envío. Revisa los datos e inténtalo nuevamente.",
+          status: "error",
+          message: getFailureMessage(response.status, body),
         });
         return;
       }
 
       if (!isWorkflowSuccess(body)) {
         setSubmission({
-          status: "unknown",
+          status: "error",
           message:
-            "La respuesta del flujo no coincide con el resultado esperado. No vuelvas a enviarlo hasta verificar si el lead ya fue registrado.",
+            "La respuesta del flujo no confirma un resultado válido. Verifica si el lead ya fue registrado antes de volver a enviarlo.",
+        });
+        return;
+      }
+
+      const expectedStatus = body.persistence.operation === "created" ? 201 : 200;
+      if (response.status !== expectedStatus) {
+        setSubmission({
+          status: "error",
+          message:
+            "La respuesta del flujo no coincide con la operación informada. Verifica el resultado antes de volver a enviarlo.",
         });
         return;
       }
 
       setSubmission({ status: "success", result: body });
       setValues(initialValues);
-    } catch {
-      setSubmission({
-        status: "unknown",
-        message:
-          "No pudimos conectar con el flujo. El resultado puede no estar confirmado; verifica si el lead fue recibido antes de volver a enviarlo.",
-      });
+    } finally {
+      submissionInProgress.current = false;
     }
   }
 
@@ -161,10 +239,6 @@ function LeadFormPage() {
           </span>
           <span>leadflow</span>
         </a>
-        <nav className="topbar-nav" aria-label="Navegación principal">
-          <a href="/" aria-current="page">Nuevo lead</a>
-          <a href="/crm">CRM</a>
-        </nav>
         <div className="topbar-note">
           <span className="live-dot" />
           Automatización comercial
@@ -320,63 +394,55 @@ function LeadFormPage() {
             )}
 
             {submission.status === "success" && (
-              <div className="status-panel status-success" role="status">
-                <span className="status-symbol success-symbol" aria-hidden="true">✓</span>
-                <div className="status-content">
+              <div
+                className={`status-panel ${
+                  submission.result.notification.status === "sent"
+                    ? "status-success"
+                    : "status-warning"
+                }`}
+                role={
+                  submission.result.notification.status === "sent"
+                    ? "status"
+                    : "alert"
+                }
+              >
+                <span
+                  className={`status-symbol ${
+                    submission.result.notification.status === "sent"
+                      ? "success-symbol"
+                      : "warning-symbol"
+                  }`}
+                  aria-hidden="true"
+                >
+                  {submission.result.notification.status === "sent" ? "✓" : "!"}
+                </span>
+                <div>
                   <strong>
+                    {submission.result.persistence.operation === "created"
+                      ? "Lead registrado"
+                      : "Lead actualizado"}
                     {submission.result.notification.status === "sent"
-                      ? "Lead recibido y equipo notificado"
-                      : "Lead recibido correctamente"}
+                      ? " y equipo notificado"
+                      : submission.result.notification.status === "failed"
+                        ? "; aviso rechazado"
+                        : "; aviso pendiente de confirmación"}
                   </strong>
                   <p>
                     {submission.result.notification.status === "sent"
-                      ? "Tu consulta se registró y la notificación se envió al equipo."
-                      : "Tu consulta se registró. Aún no hay un asesor asignado para este servicio."}
-                  </p>
-                  <div className="result-details">
-                    <span>
-                      <small>LEAD</small>
-                      <b>{submission.result.data.id}</b>
-                    </span>
-                    <span>
-                      <small>ASESOR</small>
-                      <b>
-                        {submission.result.data.assignedAdvisor?.name ??
-                          submission.result.data.assignedAdvisorId ??
-                          "Pendiente de asignación"}
-                      </b>
-                    </span>
-                  </div>
-                  <button
-                    className="text-button"
-                    onClick={() => setSubmission({ status: "idle" })}
-                    type="button"
-                  >
-                    Enviar otra consulta
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {submission.status === "slack-failed" && (
-              <div className="status-panel status-warning" role="alert">
-                <span className="status-symbol warning-symbol" aria-hidden="true">!</span>
-                <div>
-                  <strong>Lead recibido; aviso pendiente</strong>
-                  <p>
-                    El lead quedó registrado (ID {submission.leadId}), pero no
-                    pudimos confirmar la notificación. No lo reenvíes para
-                    evitar duplicarlo.
+                      ? "La consulta quedó guardada en Zoho y la notificación se confirmó en Slack."
+                      : submission.result.notification.status === "failed"
+                        ? "La consulta quedó guardada en Zoho, pero Slack rechazó la notificación. No vuelvas a enviar el formulario; el equipo debe revisar solo el aviso."
+                        : "La consulta quedó guardada en Zoho, pero no se pudo confirmar la entrega en Slack. Verifica el aviso antes de repararlo y no vuelvas a enviar el formulario."}
                   </p>
                 </div>
               </div>
             )}
 
-            {submission.status === "unknown" && (
+            {submission.status === "error" && (
               <div className="status-panel status-error" role="alert">
                 <span className="status-symbol error-symbol" aria-hidden="true">!</span>
                 <div>
-                  <strong>No pudimos confirmar el resultado</strong>
+                  <strong>Revisa el resultado del envío</strong>
                   <p>{submission.message}</p>
                 </div>
               </div>
@@ -413,5 +479,5 @@ function FlowStep({
 }
 
 export default function App() {
-  return window.location.pathname === "/crm" ? <CrmPage /> : <LeadFormPage />;
+  return <LeadFormPage />;
 }

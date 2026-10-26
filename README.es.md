@@ -4,7 +4,7 @@
 
 **De un formulario web a un asesor notificado en Slack, sin que nadie copie datos a mano.**
 
-> **Estado de `feat/zoho-crm`:** el Compose actual solo inicia frontend y n8n; el flujo Zoho/Slack aún no está configurado. Las secciones que describen backend, PostgreSQL y CRM reflejan la implementación v1 conservada en el repositorio, no servicios que arranque este Compose.
+> **Estado de `feat/zoho-crm`:** el Compose actual solo inicia frontend y n8n; el flujo Zoho/Slack aún no está configurado. El frontend ofrece solo el formulario al webhook; `/crm` también muestra el formulario y no consulta una API. Las secciones que describen backend, PostgreSQL y CRM reflejan la implementación v1 conservada en el repositorio, no servicios que arranque este Compose.
 
 LeadFlow es una demo de automatización empresarial: toma el proceso de captar un contacto comercial, registrarlo, decidir quién debe atenderlo y avisarle. Está pensada para mostrar cómo analizar un proceso, conectar sistemas y automatizar una tarea repetitiva. No es un CRM comercial: el CRM es una simulación mínima al servicio del flujo.
 
