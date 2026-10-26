@@ -1,24 +1,23 @@
 # LeadFlow frontend
 
-Minimal React + Vite frontend with a lead submission form that posts to a configurable n8n webhook. It has no CRM view or backend API calls; `/crm` displays the same form.
+Minimal React + Vite form for submitting leads to the configured n8n webhook. The form keeps entered values after errors and distinguishes confirmed Zoho persistence from Slack delivery status. It does not store leads or integration credentials.
 
 ## Run locally
 
-```sh
-cd frontend
-npm install
-Copy-Item .env.example .env
+```powershell
+npm ci
+Copy-Item ..\.env.example .env
 npm run dev
 ```
 
-Set `VITE_N8N_WEBHOOK_URL` to the URL of the configured n8n workflow. The local demo example is `http://localhost:5678/webhook/leadflow-form`. Vite embeds this URL in the frontend bundle, so it must not contain tokens or credentials. Do not put secrets in `VITE_*` variables.
+Set `VITE_N8N_WEBHOOK_URL` to the webhook URL. Vite embeds it in the build, so the value must be public and must never contain a token or credential. The repository example targets `http://localhost:5678/webhook/leadflow-form`.
 
-The webhook URL is configured at build time through `VITE_N8N_WEBHOOK_URL`. The frontend does not store leads or call private backend endpoints.
+The form sends JSON as `text/plain` so the workflow can return a controlled response for malformed JSON. A successful response requires confirmed persistence; Slack `failed` or `unconfirmed` is reported as a notification issue without claiming that the saved lead failed. Timeout, network failure, malformed response, and uncertain persistence preserve the form values and require reconciliation before resubmission. There is no automatic retry.
 
-The form sends JSON as `text/plain` so n8n can also handle malformed JSON. It accepts `201` (`created`) and `200` (`updated`) responses only when Zoho confirms persistence; Slack `failed` and `unconfirmed` states are shown as saved with a rejected or pending notification. Validation errors are actionable; on timeout, network failure, invalid response, or uncertain Zoho result, the form preserves its values and asks the submitter to verify before resending.
+Build:
 
-The budget is sent as informational text in `details`; the frontend does not validate its currency.
+```powershell
+npm run build
+```
 
-The v2 workflow returns `persistence.status=saved`, `operation=created|updated`, a string ID, and `notification.status=sent|failed|unconfirmed`. The UI does not display the ID or Zoho user metadata. Confirmed validation or persistence errors are distinguished from uncertain responses; the frontend does not automatically retry.
-
-Configure the n8n Webhook node's allowed origins for the frontend origin you deploy (for example, `http://localhost:5173` during development). Avoid a wildcard origin in production.
+See the [architecture](../docs/architecture.md), [test plan](../docs/testing/test-plan.md), [test results](../docs/testing/test-results.md), and [ticket index](../docs/tickets/README.md).

@@ -1,39 +1,23 @@
 # n8n in LeadFlow v2
 
-The `feat/zoho-crm` Compose stack runs n8n `2.5.0` at `http://localhost:5678`, bound only to `127.0.0.1`. There is no `n8n-init` service: on first access, create the n8n owner manually in its setup wizard and choose your own password.
+The v2 Compose stack runs n8n locally at <http://localhost:5678>. Create the owner account manually on first access. Compose does not import or activate workflows; inspect, configure, test, and enable a workflow deliberately.
 
-Startup does not import or publish workflows. `lead-intake-to-slack.workflow.json` belongs to v1 and depends on the backend; do not activate it as a v2 workflow. TICKET-006 provides a separate inactive Zoho/Slack candidate. The test instance verified Zoho create/update, Slack delivery and explicit invalid-channel rejection while preserving the saved Lead; an HTTP 404 from a real Zoho endpoint produced `not_saved` without a Slack notification, and a local delayed endpoint verified the `unconfirmed` timeout branch after a real upsert. A real Slack service timeout and Zoho HTTP 200 per-record error remain untested. Credentials and the selected test channel exist only in the local n8n data volume and are not part of the export.
+## Versioned workflows
 
-`leadflow-form-validation.workflow.json` is an inactive TICKET-003 validation artifact. It accepts POST requests at `leadflow-form`, validates and normalizes the form contract, and returns the normalized fields without saving a lead. It has no Zoho/Slack integrations and must not be activated or presented as the final workflow.
+- `leadflow-form-validation.workflow.json`: isolated contract-validation test artifact; no Zoho or Slack writes.
+- `leadflow-zoho-assignment.workflow.json`: inactive Owner lookup test.
+- `leadflow-zoho-upsert.workflow.json`: inactive Zoho Leads upsert candidate.
+- `leadflow-zoho-slack.workflow.json`: inactive candidate that notifies only after confirmed Zoho persistence.
+- `leadflow-zoho-qualification.workflow.json`: manual account-qualification tests; the default case reads field metadata.
 
-`leadflow-zoho-assignment.workflow.json` is the inactive TICKET-004 artifact. It accepts a normalized service at `leadflow-assignment-check`, applies the RRHH/Legal/Automatización mapping in n8n, and queries `users?type=ActiveUsers` before returning an Owner ID. An unmapped service returns HTTP 422; a lookup failure or Owner missing from the active-user response returns an explicit error. It does not save leads or send Slack. Do not connect this check to the frontend or expose it publicly.
+These artifacts are not automatically imported or published. Their test scope, observed results, and remaining limitations are recorded in the [test results](../docs/testing/test-results.md). The `main` branch retains v1; this branch contains the v2 workflow set.
 
-To test it, import the export without activating it and select the Zoho OAuth credential in `Verify owner in active Zoho users`. The versioned API base is `https://www.zohoapis.com/crm/v8`, supplied by the account owner. The Owner IDs were provided and the user confirmed they are active/assignable; all three mappings were subsequently verified with a real OAuth lookup. Do not share the complete user list, tokens, or sensitive execution output.
+## Credentials and safety
 
-`leadflow-zoho-upsert.workflow.json` is the inactive TICKET-005 candidate. It reuses the form validation, verifies the mapped Owner against active Zoho users, and sends one record to `/Leads/upsert` with `duplicate_check_fields: ["Email"]`. Its HTTP Request nodes need the saved Zoho OAuth credential selected after manual import. It checks per-record `code`, `status`, `action`, and string `details.id`; explicit record errors are not success, duplicate ambiguity is escalated, and a timeout/uncertain response does not trigger another Create. `Description` is omitted for absent/empty `details` to preserve existing text. The user confirmed this is an isolated test organization and explicitly authorized using the standard `Rating` picklist with service values `RRHH`, `Legal`, and `Automatización`; this candidate maps `serviceRequested` to `Rating` only in that test tenant. It does not use `Lead_Source`. Create, sequential update/reassignment, uppercase-email normalization, and Description preservation were verified against the test Zoho account. Two concurrent requests against the same existing synthetic Lead also returned the same ID, confirmed by a Zoho readback; this single run does not establish an exactly-once guarantee. A separate, temporary workflow without credentials exercised owner failure, HTTP 200 row errors, duplicate ambiguity, and timeout against a local mock API; those are branch tests only. Keep the candidate inactive and do not connect it as the final form workflow; actual Zoho error behavior remains unverified and Slack is not included.
+Store Zoho and Slack credentials only in n8n's credential manager. After manual import, select the correct credentials and a verified test channel; never add credentials, channel IDs, live user lists, or sensitive execution data to workflow exports or frontend configuration.
 
-`leadflow-zoho-slack.workflow.json` is the separate inactive TICKET-006 candidate, with its own `leadflow-zoho-slack` webhook path. It performs the same Zoho upsert, waits for a per-record success/action/string ID, then uses the native Slack node. After manual import, select the saved Zoho OAuth credential in both HTTP nodes, select a Slack OAuth credential and a verified test channel in `Send notification to Slack`. The export contains no credentials or channel ID. The message includes Company, contact, requested service, details, the actual Zoho Owner `full_name`, and created/updated operation. Markdown and name linking are disabled; user-controlled `@...` and `<!channel>`/`<!here>`/`<!everyone>` syntax is neutralized. Explicit Slack API rejection returns `notification.status=failed`; timeout/transport uncertainty returns `unconfirmed`. Both preserve the Zoho `saved` result and HTTP 201/200. TICKET-006 is done: create/update, confirmed Slack delivery, explicit channel rejection and Zoho HTTP 404 rejection without Slack were verified; a local delayed endpoint exercised the `unconfirmed` timeout branch after a real Zoho upsert. A real Slack service timeout and Zoho HTTP 200 per-record error remain untested. Credentials and channel selection are stored only in the local n8n data volume. To repair a notification, verify the saved Lead, search the channel first if delivery is uncertain, and post only the missing Slack message manually; never resend the form or rerun the upsert.
+The frontend webhook is configured at build time with `VITE_N8N_WEBHOOK_URL`; it must not contain secrets. Compose binds services to loopback and keeps n8n data in a separate v2 volume. Do not expose the editor or webhook publicly: CORS does not authenticate direct clients, and no effective rate limit has been verified. Do not use `docker compose down -v` to stop the demo.
 
-The form sends JSON text as `text/plain` so n8n can pass even malformed JSON to the workflow for a controlled HTTP 400 response; the workflow parses it safely before field validation. A direct caller sending malformed JSON as `application/json` gets n8n's parser-level HTTP 422 before the workflow runs. This transport does not make CORS an anti-abuse control.
+The form sends JSON as `text/plain` for controlled malformed-JSON handling. A timeout or transport failure does not prove whether Zoho saved a record. Reconcile before resubmitting. If Slack fails after a confirmed save, repair only the missing notification; do not rerun the full upsert.
 
-## Configuration
-
-The configurable webhook URL compiled into Vite is `VITE_N8N_WEBHOOK_URL`. Its local example is `http://localhost:5678/webhook/leadflow-form`, with no credentials or tokens. Optionally configure it in the repository-root `.env`; rebuild the frontend to apply Vite changes:
-
-```powershell
-docker compose up --build --detach
-```
-
-No environment variables are needed for passwords, Zoho Owners, or Slack credentials. Add those credentials to n8n's credential manager only when the corresponding workflow is ready; never put them in the frontend, `.env.example`, or workflow exports.
-
-Compose keeps access local, uses HTTP for development, and sets `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. `N8N_SECURE_COOKIE=false` is needed only for the local HTTP interface. Do not bind ports to a public interface or expose the editor. CORS does not authenticate requests or impose usage limits.
-
-Webhook bodies are capped at 1 MiB. Execution payloads are not saved for successful, failed, or manual runs; pruning remains enabled with a 24-hour age and 1,000-execution cap as a defensive bound. Form field length checks in n8n remain authoritative. CORS is restricted to `http://localhost:5173`, but direct HTTP clients bypass browser CORS and there is no rate limit. Keep the demo local; public exposure requires verified HTTPS, private/protected editor access, and an effective rate limit at the deployment edge.
-
-TICKET-008 verified these settings in n8n 2.5.0 with an isolated validation-only workflow: allowed-origin browser POST succeeded, disallowed-origin responses were blocked by the browser, direct POSTs still reached the webhook, oversized bodies were rejected, and no execution payload rows were retained. No Zoho/Slack workflow was activated for these checks.
-
-## Persistence
-
-The `leadflow-v2-compose-n8n-data` volume stores n8n configuration, credentials, workflows, and its internal database; it is not lead storage. Data survives restarts and is separate from the v1 `n8n_data` volume. `docker compose down` preserves configuration; do not use `docker compose down -v` or delete volumes as cleanup.
-
-See the [setup guide](../docs/setup.md) to start the stack and back up its data.
+See [setup](../docs/setup.md), [architecture](../docs/architecture.md), [test plan](../docs/testing/test-plan.md), [test results](../docs/testing/test-results.md), and the [ticket index](../docs/tickets/README.md).

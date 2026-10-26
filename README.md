@@ -2,167 +2,59 @@
 
 # LeadFlow
 
-**From a web form to an advisor notified on Slack, with nobody copying data by hand.**
+LeadFlow is a small business-automation demo: a React form sends an inquiry to an n8n webhook, which validates and assigns it, saves it in Zoho CRM, notifies Slack, and returns separate persistence and notification results.
 
-> **`feat/zoho-crm` status:** the current Compose stack starts only the frontend and n8n; the Zoho/Slack flow is not configured yet. The frontend provides only the webhook form; `/crm` also displays the form and does not call an API. Sections describing the backend, PostgreSQL, and CRM reflect the v1 implementation retained in the repository, not services started by this Compose stack.
-
-LeadFlow is a business automation demo: it takes the process of capturing a sales inquiry, registering it, deciding who should handle it and notifying them. It is meant to show how to analyze a process, connect systems and automate a repetitive task. It is not a commercial CRM: the CRM is a minimal simulation that serves the flow.
-
-## Business problem
-
-When a company receives inquiries through a form, each contact must quickly reach the right person. If that handoff depends on people, predictable errors appear: inquiries nobody sees, badly copied data, doubts about who is responsible and delays in the first response.
-
-## Manual process (the one being automated)
-
-1. The form arrives in an email inbox or a spreadsheet.
-2. Someone reads it and copies the data into the CRM.
-3. That person decides which advisor corresponds based on the requested service.
-4. They assign it in the CRM.
-5. They notify the advisor by chat or email.
-
-Every step is repetitive, depends on someone paying attention and can fail unnoticed.
-
-## Solution
-
-LeadFlow chains those steps automatically and deterministically:
-
-- the form sends the lead to an **n8n** workflow;
-- the **backend** validates the data, stores it in PostgreSQL and assigns the advisor according to configurable rules;
-- n8n uses the backend's actual response to **notify the team on Slack**;
-- a read-only **CRM view** lets you verify that the lead was registered and assigned;
-- if something fails, the flow reports it explicitly instead of pretending it succeeded.
-
-This project does not measure time savings or business results; it shows the automated process end to end.
-
-## Automation flow
+## Architecture and status
 
 ```text
-Form (React)
-      │  POST
-      ▼
-n8n webhook
-      │  POST /api/leads
-      ▼
-Backend: validation (Zod) → save and assign in one transaction → PostgreSQL
-      │  lead + assigned advisor
-      ▼
-n8n: is there an assigned advisor?
-      ├─ yes → Slack message → 201 response to the form
-      └─ no  → 201 response without notification ("skipped")
-
-Errors: backend call fails → 502; Slack does not confirm → 502 with the lead ID.
+React form → n8n webhook → validation and deterministic assignment
+                         → Zoho CRM / Leads → Slack → form response
 ```
 
-Registration and assignment happen in a single transaction: if the assignment fails, no half-created lead remains.
+Zoho is the only persistent business record. n8n coordinates the workflow; Slack is only a notification channel. The frontend calls the configurable webhook and keeps no lead database or private integration credentials.
 
-## Architecture
+The `feat/zoho-crm` branch contains the v2 implementation only: Compose starts the frontend and n8n. Versioned integration workflows remain inactive until deliberately configured and enabled. The former v1 backend and its workflow have been removed from this branch; `main` retains v1. No lead migration or volume removal is part of this change.
 
-```text
-frontend (React/Vite) ──► n8n (webhook) ──► backend (Express) ──► PostgreSQL
-        │                       │
-        │                       └──► Slack
-        └──── read-only (GET /api/leads) ──► backend
-```
+## Run locally
 
-- **Frontend:** form and read-only CRM. The form talks to n8n, not to the backend, and the webhook URL is configured with `VITE_N8N_WEBHOOK_URL`.
-- **n8n:** orchestrates the flow and integrates Slack. It contains no validation or assignment rules.
-- **Backend:** `controller → service → repository → database` layers. Business logic stays in the backend, where it can be tested.
-- **PostgreSQL:** stores leads, advisors and rules through Prisma.
-
-Design decision: this split of responsibilities avoids duplicating logic. n8n connects systems; the backend decides.
-
-## Technologies and why they are used
-
-| Technology | Reason |
-| --- | --- |
-| Node.js + TypeScript | A single language with strict typing in backend and frontend. |
-| Express | Minimal HTTP API, enough for the scope. |
-| Zod | Validates input at the system boundary. |
-| PostgreSQL + Prisma | Clear relational model (lead ↔ advisor ↔ rule) and versioned migrations. |
-| n8n | Visual, exportable orchestration; it is what the demo showcases. |
-| Slack | Visible notification to demonstrate the result. |
-| React + Vite | Minimal interface without added complexity. |
-| Docker Compose | Anyone should be able to start the demo in a few steps. |
-
-## Project structure
-
-```text
-backend/    Express API, Prisma (schema, migration and seed), tests
-frontend/   Form and read-only CRM (React + Vite)
-n8n/        Exported workflow, initialization script and documentation
-docker-compose.yml
-```
-
-`backend/` and `frontend/` are independent npm projects; there is no `package.json` at the root. Backend details are in [backend/README.md](backend/README.md).
-
-## Assignment rules
-
-Assignment is deterministic: the requested service is matched exactly against an active rule, and only active advisors are considered. No AI is involved.
-
-| Service | Advisor | Email (fictitious) |
-| --- | --- | --- |
-| `RRHH` (HR) | Carlos Gómez | `carlos.gomez@example.com` |
-| `Legal` | María López | `maria.lopez@example.com` |
-| `Automatización` (Automation) | Ana Torres | `ana.torres@example.com` |
-
-The service values are stored in Spanish, exactly as the form sends them. Rules live in the `assignment_rules` table, so they can be changed without touching the code. The seed (`npm run db:seed`, run automatically by Compose) loads them idempotently and does not overwrite existing records. If a service has no rule, the lead is saved without an advisor.
-
-## n8n integration
-
-The v2 Compose stack starts n8n without importing or publishing workflows. `n8n/lead-intake-to-slack.workflow.json` is a v1 workflow that depends on the backend; do not activate it as a v2 flow. On first access to n8n, manually create the owner account and choose your own password. Zoho/Slack integration will be configured in later tickets. See [n8n/README.md](n8n/README.md) for details.
-
-## Slack integration
-
-There is no active Slack workflow in the v2 Compose stack. When the integration is implemented, credentials must be stored in n8n's credential manager and notification must follow Zoho's confirmation that the lead was saved.
-
-## How to run the project
-
-Requirement: Docker Desktop with Docker Compose. From the repository root, in PowerShell:
+Requirements: Docker Desktop with Docker Compose. From the repository root:
 
 ```powershell
-docker compose up --build
+docker compose config
+docker compose up --build --detach
+docker compose ps
 ```
 
-Optionally set `VITE_N8N_WEBHOOK_URL` in `.env` (see `.env.example`) to build with a different webhook URL. The first startup requires manually creating the n8n owner account in its UI; there is no default password or automatic workflow import.
+Open the form at <http://localhost:5173> and n8n at <http://localhost:5678>. Both services bind to loopback. On first access, create the n8n owner account yourself. Compose does not import or publish workflows. `VITE_N8N_WEBHOOK_URL` can be set in the root `.env` before building; it must not contain credentials.
 
-| Service | URL |
-| --- | --- |
-| Form | <http://localhost:5173> |
-| n8n | <http://localhost:5678> |
-
-Ports are bound to `127.0.0.1`. Configuration persists in the isolated `leadflow-v2-compose-n8n-data` volume; the backend, PostgreSQL, and v1 volume are not started, modified, or deleted.
+Stop the stack without deleting data:
 
 ```powershell
-docker compose down       # stops services and keeps the data
+docker compose down
 ```
 
-## How to run the tests
+Do not use `docker compose down -v`. The named n8n v2 volume contains n8n configuration and credentials, not leads, and is separate from any v1 volume. Keep this demo local: CORS is not authentication, and public deployment is blocked until HTTPS, editor protection, and effective abuse controls are verified.
 
-The backend tests use Node's test runner with `tsx` and do not need a database. From `backend/`:
+## Verify
 
 ```powershell
+Set-Location frontend
 npm ci
-npm test
+npm run build
+Set-Location ..
+docker compose config
+docker compose build
 ```
 
-They cover lead validation and creation, assignment rules, transactional creation and assignment, persistence error handling, read endpoints and CORS. There are no automated tests for the n8n workflow or the frontend.
+The form and workflow cases, limitations, and recorded evidence are in the [test plan](docs/testing/test-plan.md) and [test results](docs/testing/test-results.md).
 
-## How to run the demo
+## Project guides
 
-1. Start the project with Docker Compose and confirm `/health` responds.
-2. (Optional) Configure Slack as described above.
-3. Open the form, fill in the data and choose a service.
-4. Watch the result: lead received, processing and assigned advisor.
-5. Show the Slack message, if configured.
-6. Open `/crm` and check the lead with its advisor.
-7. To show the assignment logic, repeat with the three services and compare the resulting advisor.
+- [Architecture](docs/architecture.md)
+- [Local setup and security limits](docs/setup.md)
+- [Decisions](docs/decisions.md)
+- [Frontend guide](frontend/README.md)
+- [n8n guide](n8n/README.md)
+- [Ticket index and scope](docs/tickets/README.md)
 
-## Limitations
-
-- It is a demo, not a CRM: no authentication, users, roles or multi-tenancy.
-- The lead status in the CRM is derived from whether it has an assigned advisor; there is no pipeline.
-- The `notifications` table exists in the model, but the current flow does not record sends in it.
-- There are no automatic retries: if the result is uncertain, the form asks to verify before resubmitting, to avoid duplicate leads.
-- The n8n webhook has no authentication or abuse protection.
-- Default credentials are for local use only; the configuration must be hardened for any deployment.
-- No time savings or business results have been measured.
+The `main` branch preserves the original v1 implementation; this branch does not alter it.

@@ -1,35 +1,23 @@
 # n8n en LeadFlow v2
 
-El Compose de la rama `feat/zoho-crm` ejecuta n8n `2.5.0` en `http://localhost:5678`, enlazado solo a `127.0.0.1`. No hay un servicio `n8n-init`: al primer acceso, crea manualmente el usuario owner en el asistente de n8n y elige una contraseña propia.
+El Compose v2 ejecuta n8n en local, en <http://localhost:5678>. Crea manualmente el usuario owner en el primer acceso. Compose no importa ni activa workflows: inspecciona, configura, prueba y habilita deliberadamente cada flujo.
 
-El arranque no importa ni publica workflows. `lead-intake-to-slack.workflow.json` pertenece a v1 y depende del backend; no lo actives como flujo v2.
+## Workflows versionados
 
-`leadflow-zoho-assignment.workflow.json` es el artefacto inactivo de TICKET-004. Recibe un servicio normalizado en `leadflow-assignment-check`, aplica el mapping RRHH/Legal/Automatización en n8n y consulta `users?type=ActiveUsers` antes de devolver el Owner ID. Servicio sin regla responde 422; error de consulta o propietario no listado devuelve error explícito. No guarda leads ni envía Slack. No lo conectes al frontend ni lo expongas públicamente.
+- `leadflow-form-validation.workflow.json`: artefacto aislado para probar el contrato; no escribe en Zoho ni Slack.
+- `leadflow-zoho-assignment.workflow.json`: prueba inactiva de consulta del Owner.
+- `leadflow-zoho-upsert.workflow.json`: candidato inactivo para upsert de Leads en Zoho.
+- `leadflow-zoho-slack.workflow.json`: candidato inactivo que notifica solo después de confirmar la persistencia en Zoho.
+- `leadflow-zoho-qualification.workflow.json`: pruebas manuales de calificación de cuenta; el caso predeterminado solo lee metadata de campos.
 
-Para probarlo, importa el export sin activarlo y selecciona la credencial OAuth Zoho en `Verify owner in active Zoho users`. El API base versionado es `https://www.zohoapis.com/crm/v8`, proporcionado por el propietario de la cuenta. Los IDs fueron proporcionados y el usuario confirmó que son activos/asignables; las tres asignaciones ya se comprobaron con una consulta OAuth real. No compartas el listado completo de usuarios, tokens ni la salida sensible de la ejecución.
+Estos artefactos no se importan ni publican automáticamente. El alcance, resultados observados y límites pendientes están en los [resultados de pruebas](../docs/testing/test-results.md). La rama `main` conserva v1; esta rama contiene el conjunto de workflows v2.
 
-`leadflow-zoho-upsert.workflow.json` es el candidato inactivo de TICKET-005. Reutiliza la validación del formulario, verifica el Owner mapeado contra los usuarios activos de Zoho y envía un registro a `/Leads/upsert` con `duplicate_check_fields: ["Email"]`. Tras importarlo manualmente, selecciona la credencial OAuth Zoho guardada en ambos nodos HTTP. Comprueba `code`, `status`, `action` e `id` string por registro; un error individual no es éxito, los duplicados ambiguos se escalan y un timeout/resultado incierto no dispara otro Create. Se omite `Description` si `details` falta o está vacío para conservar el valor existente. El usuario confirmó que el tenant es de prueba aislado y autorizó usar `Rating` como picklist de servicio con `RRHH`, `Legal` y `Automatización`; el candidato mapea ahí `serviceRequested`. No se usa `Lead_Source`. Create, update/reasignación secuencial, email en mayúsculas y preservación de Description se verificaron contra Zoho. Dos solicitudes simultáneas sobre el Lead sintético existente devolvieron el mismo ID y se confirmó un único registro; esto no promete exactly-once. Una copia temporal sin credenciales comprobó ramas de Owner, error 2xx por registro, duplicado ambiguo y timeout contra una API mock local; esto no prueba el comportamiento real de Zoho. Mantén el candidato inactivo; no integra Slack y los escenarios de error reales siguen pendientes.
+## Credenciales y seguridad
 
-`leadflow-zoho-slack.workflow.json` es el candidato separado e inactivo de TICKET-006, con webhook propio `leadflow-zoho-slack`. Repite el upsert Zoho y solo después de confirmar por registro la acción y el ID invoca el nodo nativo Slack. Tras importarlo, selecciona la credencial OAuth Zoho en los dos nodos HTTP, configura una credencial OAuth Slack y elige un canal de prueba verificado en `Send notification to Slack`; conserva el workflow inactivo hasta decidir su publicación como flujo final en el ticket correspondiente. El export no contiene credenciales ni ID de canal. El mensaje incluye empresa, contacto, servicio, detalles, `full_name` del Owner real de Zoho y la operación created/updated. Markdown y vinculación de nombres están desactivados; se neutralizan las menciones `@...` y `<!channel>`/`<!here>`/`<!everyone>` del contenido controlado por usuario. Un rechazo explícito de Slack responde `notification.status=failed`; timeout/transporte incierto responde `unconfirmed`. Ambos conservan el Lead guardado y HTTP 201/200. La instancia de prueba confirmó alta, actualización, rechazo de canal, respuesta `unconfirmed` mediante un endpoint local demorado y rechazo HTTP 404 Zoho sin Slack. El timeout real del servicio Slack no se probó. La credencial y el canal de la instancia local no se versionan. Para reparar el aviso, verifica el Lead guardado, busca primero en el canal si la entrega es incierta y publica solo el mensaje faltante; no reenvíes el formulario ni repitas el upsert.
+Guarda credenciales Zoho y Slack únicamente en el gestor de credenciales de n8n. Después de importar manualmente, selecciona las credenciales correctas y un canal de prueba verificado. Nunca añadas credenciales, IDs de canal, listados de usuarios reales ni datos sensibles de ejecuciones a exports o configuración del frontend.
 
-## Configuración
+El webhook del frontend se configura al compilar con `VITE_N8N_WEBHOOK_URL`; no debe contener secretos. Compose enlaza los servicios a loopback y conserva los datos de n8n en un volumen v2 separado. No expongas el editor ni el webhook: CORS no autentica a clientes directos y no se verificó un rate limit efectivo. No uses `docker compose down -v` para detener la demo.
 
-La URL configurable del webhook que compila Vite es `VITE_N8N_WEBHOOK_URL`. Su ejemplo local es `http://localhost:5678/webhook/leadflow-form`, sin credenciales ni tokens. Se configura opcionalmente en el `.env` de la raíz; para aplicar cambios a Vite hay que reconstruir el frontend:
+El formulario envía JSON como `text/plain` para gestionar de forma controlada el JSON malformado. Un timeout o error de transporte no confirma si Zoho guardó el registro: reconcilia antes de reenviar. Si Slack falla después del guardado confirmado, repara solo la notificación faltante; no repitas el upsert completo.
 
-```powershell
-docker compose up --build --detach
-```
-
-No se necesitan variables de entorno para contraseñas, Owner de Zoho ni credenciales de Slack. Añade esas credenciales al gestor de n8n solo cuando el workflow correspondiente esté listo; nunca las pongas en el frontend, `.env.example` o exports de workflows.
-
-Compose mantiene acceso local, HTTP para desarrollo y `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. `N8N_SECURE_COOKIE=false` es necesario únicamente para la interfaz local por HTTP. No cambies los puertos a una interfaz pública ni expongas el editor. CORS no autentica solicitudes ni es un límite de uso.
-
-El cuerpo máximo de los webhooks es 1 MiB. No se guardan payloads de ejecuciones exitosas, fallidas ni manuales; la poda sigue habilitada con antigüedad máxima de 24 horas y tope de 1.000 ejecuciones como límite defensivo. La validación de longitudes en n8n sigue siendo autoritativa. CORS se limita a `http://localhost:5173`, pero clientes HTTP directos no dependen de CORS y no existe rate limit. Mantén la demo local; antes de exponerla se deben verificar HTTPS, protección/acceso privado al editor y un rate limit efectivo en el borde.
-
-TICKET-008 verificó estas opciones en n8n 2.5.0 con un workflow de validación aislado: el POST del origen permitido funcionó en navegador, los del origen no permitido fueron bloqueados para lectura, las llamadas directas sí llegaron al webhook, los cuerpos excesivos fueron rechazados y no se retuvieron filas de ejecución. No se activó ningún workflow Zoho/Slack para estas pruebas.
-
-## Persistencia
-
-El volumen `leadflow-v2-compose-n8n-data` almacena la configuración de n8n, credenciales, workflows y su base interna; no es almacenamiento de leads. Los datos sobreviven reinicios y se separan del volumen v1 `n8n_data`. `docker compose down` conserva la configuración; no uses `docker compose down -v` ni elimines volúmenes para limpiar.
-
-Consulta [la guía de configuración](../docs/setup.md) para iniciar el stack y respaldar sus datos.
+Consulta [configuración](../docs/setup.md), [arquitectura](../docs/architecture.md), [plan de pruebas](../docs/testing/test-plan.md), [resultados](../docs/testing/test-results.md) e [índice de tickets](../docs/tickets/README.md).
