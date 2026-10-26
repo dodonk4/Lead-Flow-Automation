@@ -24,6 +24,10 @@ No se necesitan variables de entorno para contraseñas, Owner de Zoho ni credenc
 
 Compose mantiene acceso local, HTTP para desarrollo y `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. `N8N_SECURE_COOKIE=false` es necesario únicamente para la interfaz local por HTTP. No cambies los puertos a una interfaz pública ni expongas el editor. CORS no autentica solicitudes ni es un límite de uso.
 
+El cuerpo máximo de los webhooks es 1 MiB. No se guardan payloads de ejecuciones exitosas, fallidas ni manuales; la poda sigue habilitada con antigüedad máxima de 24 horas y tope de 1.000 ejecuciones como límite defensivo. La validación de longitudes en n8n sigue siendo autoritativa. CORS se limita a `http://localhost:5173`, pero clientes HTTP directos no dependen de CORS y no existe rate limit. Mantén la demo local; antes de exponerla se deben verificar HTTPS, protección/acceso privado al editor y un rate limit efectivo en el borde.
+
+TICKET-008 verificó estas opciones en n8n 2.5.0 con un workflow de validación aislado: el POST del origen permitido funcionó en navegador, los del origen no permitido fueron bloqueados para lectura, las llamadas directas sí llegaron al webhook, los cuerpos excesivos fueron rechazados y no se retuvieron filas de ejecución. No se activó ningún workflow Zoho/Slack para estas pruebas.
+
 ## Persistencia
 
 El volumen `leadflow-v2-compose-n8n-data` almacena la configuración de n8n, credenciales, workflows y su base interna; no es almacenamiento de leads. Los datos sobreviven reinicios y se separan del volumen v1 `n8n_data`. `docker compose down` conserva la configuración; no uses `docker compose down -v` ni elimines volúmenes para limpiar.

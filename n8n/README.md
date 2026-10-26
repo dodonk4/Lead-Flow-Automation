@@ -28,6 +28,10 @@ No environment variables are needed for passwords, Zoho Owners, or Slack credent
 
 Compose keeps access local, uses HTTP for development, and sets `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`. `N8N_SECURE_COOKIE=false` is needed only for the local HTTP interface. Do not bind ports to a public interface or expose the editor. CORS does not authenticate requests or impose usage limits.
 
+Webhook bodies are capped at 1 MiB. Execution payloads are not saved for successful, failed, or manual runs; pruning remains enabled with a 24-hour age and 1,000-execution cap as a defensive bound. Form field length checks in n8n remain authoritative. CORS is restricted to `http://localhost:5173`, but direct HTTP clients bypass browser CORS and there is no rate limit. Keep the demo local; public exposure requires verified HTTPS, private/protected editor access, and an effective rate limit at the deployment edge.
+
+TICKET-008 verified these settings in n8n 2.5.0 with an isolated validation-only workflow: allowed-origin browser POST succeeded, disallowed-origin responses were blocked by the browser, direct POSTs still reached the webhook, oversized bodies were rejected, and no execution payload rows were retained. No Zoho/Slack workflow was activated for these checks.
+
 ## Persistence
 
 The `leadflow-v2-compose-n8n-data` volume stores n8n configuration, credentials, workflows, and its internal database; it is not lead storage. Data survives restarts and is separate from the v1 `n8n_data` volume. `docker compose down` preserves configuration; do not use `docker compose down -v` or delete volumes as cleanup.

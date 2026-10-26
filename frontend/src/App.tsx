@@ -299,6 +299,7 @@ function LeadFormPage() {
                 <span>Nombre completo</span>
                 <input
                   autoComplete="name"
+                  maxLength={160}
                   name="name"
                   placeholder="Ej. Alex Rivera"
                   required
@@ -310,6 +311,7 @@ function LeadFormPage() {
                 <span>Email de trabajo</span>
                 <input
                   autoComplete="email"
+                  maxLength={320}
                   name="email"
                   placeholder="alex@empresa.com"
                   required
@@ -322,6 +324,7 @@ function LeadFormPage() {
                 <span>Empresa</span>
                 <input
                   autoComplete="organization"
+                  maxLength={160}
                   name="company"
                   placeholder="Nombre de tu empresa"
                   required
