@@ -37,7 +37,7 @@ const initialValues: FormValues = {
   budget: "",
 };
 
-const webhookTimeoutMs = 30_000;
+const webhookTimeoutMs = 120_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -180,7 +180,7 @@ function LeadFormPage() {
         setSubmission({
           status: "error",
           message:
-            "La solicitud tardó demasiado o se interrumpió. El resultado puede no estar confirmado; verifica si el lead fue recibido antes de volver a enviarlo.",
+            "La solicitud superó el tiempo de espera o se interrumpió. El resultado puede no estar confirmado; verifica si el lead fue recibido antes de volver a enviarlo.",
         });
         return;
       } finally {
